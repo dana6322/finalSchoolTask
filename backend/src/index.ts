@@ -7,6 +7,7 @@ import commentRouter from "./routes/commentRoute";
 import authRoute from "./routes/authRoute";
 import userRouter from "./routes/userRoute";
 import multerRouter from "./routes/multerRoute";
+import aiRouter from "./routes/aiRoute";
 import { swaggerUi, swaggerSpec } from "./swagger";
 
 import dotenv from "dotenv";
@@ -37,6 +38,7 @@ app.use("/user", userRouter);
 app.use("/auth", authRoute);
 app.use("/uploads", express.static("public/uploads"));
 app.use("/upload", multerRouter);
+app.use("/ai", aiRouter);
 
 // Swagger JSON endpoint
 app.get("/api-docs.json", (req, res) => {

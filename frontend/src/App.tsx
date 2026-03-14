@@ -1,13 +1,19 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import PostDetail from './pages/PostDetail';
-import Profile from './pages/Profile';
-import PrivateRoute from './components/PrivateRoute';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import Navbar from "./components/Navbar";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import PostDetail from "./pages/PostDetail";
+import Profile from "./pages/Profile";
+import Search from "./pages/Search";
+import PrivateRoute from "./components/PrivateRoute";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 function App() {
   return (
@@ -38,6 +44,14 @@ function App() {
             element={
               <PrivateRoute>
                 <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <PrivateRoute>
+                <Search />
               </PrivateRoute>
             }
           />
