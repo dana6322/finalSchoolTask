@@ -1,54 +1,113 @@
-import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import type { Post } from "../types";
+import type { Post, User } from "../types";
 import api from "../services/api";
 import PostCard from "../components/PostCard";
+import ImageUpload from "../components/ImageUpload";
 
 export default function Profile() {
-  const { user, logout, token } = useAuth();
+  const { userId } = useParams<{ userId: string }>();
+  const { user: loggedInUser, logout, token, refreshUser } = useAuth();
   const navigate = useNavigate();
+
+  // The profile being viewed (could be another user or the logged-in user)
+  const [profileUser, setProfileUser] = useState<User | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  const isOwnProfile = !userId || userId === loggedInUser?._id;
+
   const [isEditing, setIsEditing] = useState(false);
   const [userName, setUserName] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [profilePicture, setProfilePicture] = useState("");
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(
     null,
   );
   const [profilePicturePreview, setProfilePicturePreview] = useState("");
-  const profilePicInputRef = useRef<HTMLInputElement>(null);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"profile" | "posts">("profile");
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
 
+  const handleProfileFileSelect = (file: File) => {
+    setProfilePictureFile(file);
+    setProfilePicturePreview(URL.createObjectURL(file));
+  };
+
+  const removeProfileImage = () => {
+    setProfilePictureFile(null);
+    setProfilePicturePreview("");
+    setProfilePicture("");
+  };
+
+  // Fetch the profile user's data
   useEffect(() => {
-    if (user) {
-      setUserName(user.userName || "");
-      setFirstName(user.firstName || "");
-      setLastName(user.lastName || "");
-      setProfilePicture(user.profilePicture || "");
+    const fetchProfile = async () => {
+      setLoadingProfile(true);
+      try {
+        if (isOwnProfile && loggedInUser) {
+          setProfileUser(loggedInUser);
+        } else if (userId) {
+          const response = await api.get(`/user/${userId}`);
+          setProfileUser(response.data);
+        }
+      } catch {
+        setError("Failed to load user profile");
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+    fetchProfile();
+  }, [userId, loggedInUser, isOwnProfile]);
+
+  // Sync edit fields when profileUser changes
+  useEffect(() => {
+    if (profileUser) {
+      setUserName(profileUser.userName || "");
+      setProfilePicture(profileUser.profilePicture || "");
     }
-  }, [user]);
+  }, [profileUser]);
+
+  // Fetch this user's posts
+  useEffect(() => {
+    if (!profileUser?._id) return;
+    const fetchPosts = async () => {
+      setLoadingPosts(true);
+      try {
+        const response = await api.get("/post");
+        const targetId = profileUser._id;
+        const filteredPosts = response.data.filter(
+          (post: Post) =>
+            (typeof post.sender === "object" && post.sender._id === targetId) ||
+            post.sender === targetId,
+        );
+        const sortedPosts = filteredPosts.sort((a: Post, b: Post) => {
+          const dateA = new Date(a.createdAt || 0).getTime();
+          const dateB = new Date(b.createdAt || 0).getTime();
+          return dateB - dateA;
+        });
+        setUserPosts(sortedPosts);
+      } catch (err) {
+        console.error("Failed to fetch user posts:", err);
+      } finally {
+        setLoadingPosts(false);
+      }
+    };
+    fetchPosts();
+  }, [profileUser?._id]);
 
   const fetchUserPosts = async () => {
-    if (!user?._id) return;
+    if (!profileUser?._id) return;
     setLoadingPosts(true);
     try {
       const response = await api.get("/post");
-      // Filter posts by current user
+      const targetId = profileUser._id;
       const filteredPosts = response.data.filter(
         (post: Post) =>
-          (typeof post.sender === "object" && post.sender._id === user._id) ||
-          post.sender === user._id,
+          (typeof post.sender === "object" && post.sender._id === targetId) ||
+          post.sender === targetId,
       );
-      // Sort by createdAt descending (most recent first)
       const sortedPosts = filteredPosts.sort((a: Post, b: Post) => {
         const dateA = new Date(a.createdAt || 0).getTime();
         const dateB = new Date(b.createdAt || 0).getTime();
@@ -59,13 +118,6 @@ export default function Profile() {
       console.error("Failed to fetch user posts:", err);
     } finally {
       setLoadingPosts(false);
-    }
-  };
-
-  const handleTabChange = (tab: "profile" | "posts") => {
-    setActiveTab(tab);
-    if (tab === "posts") {
-      fetchUserPosts();
     }
   };
 
@@ -94,53 +146,19 @@ export default function Profile() {
         setProfilePicture(updatedProfilePicture);
       }
 
-      await api.put(`/user/${user?._id}`, {
+      await api.put(`/user/${loggedInUser?._id}`, {
         userName,
-        firstName,
-        lastName,
         profilePicture: updatedProfilePicture,
       });
       setMessage("Profile updated successfully");
       setIsEditing(false);
       setProfilePictureFile(null);
       setProfilePicturePreview("");
-      if (profilePicInputRef.current) profilePicInputRef.current.value = "";
+      // Refresh the logged-in user context so changes reflect everywhere
+      await refreshUser();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || "Failed to update profile");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setMessage("");
-
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setError("New password must be at least 6 characters");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await api.post("/auth/changePassword", {
-        currentPassword,
-        newPassword,
-      });
-      setMessage("Password changed successfully");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || "Failed to change password");
     } finally {
       setIsLoading(false);
     }
@@ -151,299 +169,206 @@ export default function Profile() {
     navigate("/login");
   };
 
+  if (loadingProfile) {
+    return (
+      <div className="feed-content text-center py-5">
+        <div
+          className="spinner-border"
+          role="status"
+          style={{ color: "var(--primary)" }}
+        >
+          <span className="visually-hidden">Loading profile...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profileUser) {
+    return (
+      <div className="feed-content">
+        <div className="alert alert-danger">User not found.</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mt-4">
-      <div className="row">
-        {user && (
-          <div className="col-lg-8 mx-auto">
-            <h2 className="mb-4">My Profile</h2>
-
-            {/* Tab Navigation */}
-            <ul className="nav nav-tabs mb-4" role="tablist">
-              <li className="nav-item" role="presentation">
-                <button
-                  className={`nav-link ${activeTab === "profile" ? "active" : ""}`}
-                  onClick={() => handleTabChange("profile")}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === "profile"}
-                >
-                  Profile Info
-                </button>
-              </li>
-              <li className="nav-item" role="presentation">
-                <button
-                  className={`nav-link ${activeTab === "posts" ? "active" : ""}`}
-                  onClick={() => handleTabChange("posts")}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === "posts"}
-                >
-                  My Posts
-                </button>
-              </li>
-            </ul>
-
-            {message && (
-              <div className="alert alert-success" role="alert">
-                {message}
-              </div>
-            )}
-
-            {error && (
-              <div className="alert alert-danger" role="alert">
-                {error}
-              </div>
-            )}
-
-            {activeTab === "profile" && (
-              <>
-                <div className="card mb-4">
-                  <div className="card-body">
-                    <h5 className="card-title">Profile Information</h5>
-                    {!isEditing ? (
-                      <>
-                        {profilePicture && (
-                          <div className="mb-3">
-                            <img
-                              src={profilePicture}
-                              alt="Profile"
-                              className="img-thumbnail"
-                              style={{
-                                maxWidth: "150px",
-                                height: "150px",
-                                objectFit: "cover",
-                              }}
-                            />
-                          </div>
-                        )}
-                        <p>
-                          <strong>Email:</strong> {user?.email}
-                        </p>
-                        <p>
-                          <strong>Username:</strong> {userName || "Not set"}
-                        </p>
-                        <p>
-                          <strong>First Name:</strong> {firstName || "Not set"}
-                        </p>
-                        <p>
-                          <strong>Last Name:</strong> {lastName || "Not set"}
-                        </p>
-                        <button
-                          className="btn btn-primary"
-                          onClick={() => setIsEditing(true)}
-                        >
-                          Edit Profile
-                        </button>
-                      </>
-                    ) : (
-                      <form onSubmit={handleUpdateProfile}>
-                        <div className="mb-3">
-                          <label htmlFor="email" className="form-label">
-                            Email
-                          </label>
-                          <input
-                            type="email"
-                            className="form-control"
-                            id="email"
-                            value={user?.email}
-                            disabled
-                          />
-                        </div>
-
-                        <div className="mb-3">
-                          <label htmlFor="userName" className="form-label">
-                            Username
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="userName"
-                            value={userName}
-                            onChange={(e) => setUserName(e.target.value)}
-                          />
-                        </div>
-
-                        <div className="mb-3">
-                          <label htmlFor="firstName" className="form-label">
-                            First Name
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="firstName"
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                          />
-                        </div>
-
-                        <div className="mb-3">
-                          <label htmlFor="lastName" className="form-label">
-                            Last Name
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="lastName"
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                          />
-                        </div>
-
-                        <div className="mb-3">
-                          <label
-                            htmlFor="profilePicture"
-                            className="form-label"
-                          >
-                            Profile Picture
-                          </label>
-                          <input
-                            type="file"
-                            className="form-control"
-                            id="profilePicture"
-                            accept="image/*"
-                            ref={profilePicInputRef}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setProfilePictureFile(file);
-                                setProfilePicturePreview(
-                                  URL.createObjectURL(file),
-                                );
-                              }
-                            }}
-                          />
-                          {(profilePicturePreview || profilePicture) && (
-                            <img
-                              src={profilePicturePreview || profilePicture}
-                              alt="Preview"
-                              className="mt-2 img-thumbnail"
-                              style={{
-                                maxWidth: "150px",
-                                height: "150px",
-                                objectFit: "cover",
-                              }}
-                              onError={() => setError("Invalid image")}
-                            />
-                          )}
-                        </div>
-
-                        <button
-                          type="submit"
-                          className="btn btn-success me-2"
-                          disabled={isLoading}
-                        >
-                          {isLoading ? "Saving..." : "Save Changes"}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={() => setIsEditing(false)}
-                        >
-                          Cancel
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </div>
-
-                <div className="card mb-4">
-                  <div className="card-body">
-                    <h5 className="card-title">Change Password</h5>
-                    <form onSubmit={handleChangePassword}>
-                      <div className="mb-3">
-                        <label htmlFor="currentPassword" className="form-label">
-                          Current Password
-                        </label>
-                        <input
-                          type="password"
-                          className="form-control"
-                          id="currentPassword"
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="mb-3">
-                        <label htmlFor="newPassword" className="form-label">
-                          New Password
-                        </label>
-                        <input
-                          type="password"
-                          className="form-control"
-                          id="newPassword"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="mb-3">
-                        <label htmlFor="confirmPassword" className="form-label">
-                          Confirm New Password
-                        </label>
-                        <input
-                          type="password"
-                          className="form-control"
-                          id="confirmPassword"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="btn btn-warning"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? "Changing..." : "Change Password"}
-                      </button>
-                    </form>
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="card-body">
-                    <button className="btn btn-danger" onClick={handleLogout}>
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {activeTab === "posts" && (
-              <div>
-                {loadingPosts ? (
-                  <div className="text-center">
-                    <div className="spinner-border" role="status">
-                      <span className="visually-hidden">Loading posts...</span>
-                    </div>
-                  </div>
-                ) : userPosts.length === 0 ? (
-                  <div className="alert alert-info">
-                    You haven't created any posts yet. Start sharing your
-                    thoughts!
-                  </div>
-                ) : (
-                  <div>
-                    {userPosts.map((post) => (
-                      <PostCard
-                        key={post._id}
-                        post={post}
-                        currentUserId={user._id}
-                        onPostDeleted={() => fetchUserPosts()}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+    <>
+      {/* Top bar */}
+      <div className="app-topbar">
+        <h5 className="mb-0 fw-bold">
+          {isOwnProfile ? "My Profile" : profileUser.userName || "Profile"}
+        </h5>
+        {isOwnProfile && !isEditing && (
+          <div className="topbar-actions">
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={() => setIsEditing(true)}
+              style={{ borderRadius: "20px", padding: "6px 18px" }}
+            >
+              <i className="fa-solid fa-pen"></i> Edit Profile
+            </button>
           </div>
         )}
       </div>
-    </div>
+
+      <div className="feed-content">
+        {/* Profile Header */}
+        <div className="card mb-4">
+          <div className="card-body text-center py-4">
+            {/* Profile Picture */}
+            <div className="mb-3">
+              {profilePicture ? (
+                <img
+                  src={profilePicture}
+                  alt="Profile"
+                  className="rounded-circle"
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    objectFit: "cover",
+                    border: "3px solid var(--border-color)",
+                  }}
+                />
+              ) : (
+                <div
+                  className="rounded-circle d-inline-flex align-items-center justify-content-center"
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    background: "var(--primary)",
+                  }}
+                >
+                  <span className="text-white" style={{ fontSize: "2.5rem" }}>
+                    {(profileUser.userName || profileUser.email || "?")
+                      .charAt(0)
+                      .toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <h4 className="mb-1">{profileUser.userName || "Unknown User"}</h4>
+            <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+              {profileUser.email}
+            </p>
+          </div>
+        </div>
+
+        {message && (
+          <div className="alert alert-success" role="alert">
+            {message}
+          </div>
+        )}
+
+        {error && (
+          <div className="alert alert-danger" role="alert">
+            {error}
+          </div>
+        )}
+
+        {/* Edit Form (own profile only) */}
+        {isOwnProfile && isEditing && (
+          <div className="card mb-4">
+            <div className="card-body">
+              <h5 className="card-title mb-3">Edit Profile</h5>
+              <form onSubmit={handleUpdateProfile}>
+                <div className="mb-3">
+                  <label htmlFor="userName" className="form-label">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="userName"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Profile Picture</label>
+                  <ImageUpload
+                    preview={profilePicturePreview || profilePicture}
+                    onFileSelect={handleProfileFileSelect}
+                    onRemove={removeProfileImage}
+                    shape="circle"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary me-2"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Saving..." : "Save Changes"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setProfilePictureFile(null);
+                    setProfilePicturePreview("");
+                    setUserName(profileUser.userName || "");
+                    setProfilePicture(profileUser.profilePicture || "");
+                  }}
+                >
+                  Cancel
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* User's Posts */}
+        <h5 className="mb-3">
+          {isOwnProfile
+            ? "My Posts"
+            : `Posts by ${profileUser.userName || "this user"}`}
+        </h5>
+
+        {loadingPosts ? (
+          <div className="text-center">
+            <div
+              className="spinner-border"
+              role="status"
+              style={{ color: "var(--primary)" }}
+            >
+              <span className="visually-hidden">Loading posts...</span>
+            </div>
+          </div>
+        ) : userPosts.length === 0 ? (
+          <div className="alert alert-info">
+            {isOwnProfile
+              ? "You haven't created any posts yet. Start sharing your thoughts!"
+              : "This user hasn't created any posts yet."}
+          </div>
+        ) : (
+          <div>
+            {userPosts.map((post) => (
+              <PostCard
+                key={post._id}
+                post={post}
+                currentUserId={loggedInUser?._id || ""}
+                onPostDeleted={() => fetchUserPosts()}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Logout (own profile only) */}
+        {isOwnProfile && (
+          <div className="text-center mt-4 mb-4">
+            <button
+              className="btn btn-outline-danger btn-sm"
+              onClick={handleLogout}
+              style={{ borderRadius: "20px", padding: "6px 24px" }}
+            >
+              <i className="fa-solid fa-right-from-bracket"></i> Logout
+            </button>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

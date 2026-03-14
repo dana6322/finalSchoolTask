@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import api from "../services/api";
+import ImageUpload from "./ImageUpload";
 
 interface CreatePostModalProps {
   show: boolean;
@@ -19,13 +20,16 @@ export default function CreatePostModal({
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImgFile(file);
-      setImgPreview(URL.createObjectURL(file));
-      setError("");
-    }
+  const handleFileSelect = (file: File) => {
+    setImgFile(file);
+    setImgPreview(URL.createObjectURL(file));
+    setError("");
+  };
+
+  const removeImage = () => {
+    setImgFile(null);
+    setImgPreview("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,26 +109,13 @@ export default function CreatePostModal({
               </div>
 
               <div className="mb-3">
-                <label htmlFor="img" className="form-label">
-                  Image
-                </label>
-                <input
-                  type="file"
-                  className="form-control"
-                  id="img"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
+                <label className="form-label">Image</label>
+                <ImageUpload
+                  preview={imgPreview}
+                  onFileSelect={handleFileSelect}
+                  onRemove={removeImage}
                   disabled={isLoading}
                 />
-                {imgPreview && (
-                  <img
-                    src={imgPreview}
-                    alt="Preview"
-                    className="mt-2 img-fluid"
-                    style={{ maxHeight: "200px" }}
-                  />
-                )}
               </div>
             </div>
             <div className="modal-footer">

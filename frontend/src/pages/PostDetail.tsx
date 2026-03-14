@@ -63,11 +63,13 @@ export default function PostDetail() {
 
   if (isLoading) {
     return (
-      <div className="container mt-5">
-        <div className="text-center py-5">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+      <div className="feed-content text-center py-5">
+        <div
+          className="spinner-border"
+          role="status"
+          style={{ color: "var(--primary)" }}
+        >
+          <span className="visually-hidden">Loading...</span>
         </div>
       </div>
     );
@@ -75,7 +77,7 @@ export default function PostDetail() {
 
   if (error || !post) {
     return (
-      <div className="container mt-5">
+      <div className="feed-content">
         <div className="alert alert-danger" role="alert">
           {error || "Post not found"}
         </div>
@@ -89,54 +91,90 @@ export default function PostDetail() {
   const sender = typeof post.sender === "string" ? senderInfo : post.sender;
 
   return (
-    <div className="container mt-4">
-      <div className="row">
-        <div className="col-lg-8 mx-auto">
-          <button
-            className="btn btn-secondary mb-4"
-            onClick={() => navigate("/")}
-          >
-            ← Back to Posts
-          </button>
+    <>
+      {/* Top bar */}
+      <div className="app-topbar">
+        <button
+          className="btn btn-sm btn-light d-flex align-items-center gap-1"
+          onClick={() => navigate("/")}
+          style={{ borderRadius: "20px" }}
+        >
+          <i className="fa-solid fa-arrow-left"></i> Back
+        </button>
+        <h5 className="mb-0 fw-bold">Post Detail</h5>
+      </div>
 
-          <div className="card mb-4">
+      <div className="feed-content">
+        <div className="card mb-4">
+          {post.img && (
             <img
               src={post.img}
               alt="Post"
-              className="card-img-top"
-              style={{ maxHeight: "400px", objectFit: "cover" }}
-            />
-            <div className="card-body">
-              <div className="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                  <h4 className="card-title">
-                    {sender?.userName || sender?.email || "Unknown"}
-                  </h4>
-                  <p className="text-muted small">
-                    {new Date(post.createdAt || "").toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              <p className="card-text">{post.text}</p>
-            </div>
-          </div>
-
-          <h5 className="mb-4">Comments ({comments.length})</h5>
-
-          {user && (
-            <AddCommentForm
-              postId={post._id}
-              onCommentAdded={handleCommentAdded}
+              className="w-100"
+              style={{
+                maxHeight: "500px",
+                objectFit: "contain",
+                backgroundColor: "#f8f9fa",
+                borderRadius: "14px 14px 0 0",
+              }}
             />
           )}
-
-          <CommentList
-            comments={comments}
-            currentUserId={user?._id || ""}
-            onCommentDeleted={handleCommentDeleted}
-          />
+          <div className="card-body">
+            <div className="d-flex align-items-center gap-2 mb-3">
+              {(sender as User)?.profilePicture ? (
+                <img
+                  src={(sender as User).profilePicture}
+                  alt=""
+                  className="rounded-circle"
+                  style={{ width: "40px", height: "40px", objectFit: "cover" }}
+                />
+              ) : (
+                <div
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    background: "var(--primary)",
+                  }}
+                >
+                  <span
+                    className="text-white fw-bold"
+                    style={{ fontSize: "0.85rem" }}
+                  >
+                    {((sender as User)?.userName || "U")
+                      .charAt(0)
+                      .toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div>
+                <div className="fw-semibold" style={{ fontSize: "0.95rem" }}>
+                  {sender?.userName || sender?.email || "Unknown"}
+                </div>
+                <small className="text-muted">
+                  {new Date(post.createdAt || "").toLocaleDateString()}
+                </small>
+              </div>
+            </div>
+            <p className="card-text">{post.text}</p>
+          </div>
         </div>
+
+        <h5 className="mb-3">Comments ({comments.length})</h5>
+
+        {user && (
+          <AddCommentForm
+            postId={post._id}
+            onCommentAdded={handleCommentAdded}
+          />
+        )}
+
+        <CommentList
+          comments={comments}
+          currentUserId={user?._id || ""}
+          onCommentDeleted={handleCommentDeleted}
+        />
       </div>
-    </div>
+    </>
   );
 }

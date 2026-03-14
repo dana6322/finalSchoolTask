@@ -111,8 +111,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshToken]);
 
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await api.get('/user/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUser(response.data);
+      localStorage.setItem('user', JSON.stringify(response.data));
+    } catch (err) {
+      console.error('Failed to refresh user data:', err);
+    }
+  }, [token]);
+
   return (
-    <AuthContext.Provider value={{ user, token, refreshToken, login, register, logout, isLoading, error }}>
+    <AuthContext.Provider value={{ user, token, refreshToken, login, register, logout, refreshUser, isLoading, error }}>
       {children}
     </AuthContext.Provider>
   );
