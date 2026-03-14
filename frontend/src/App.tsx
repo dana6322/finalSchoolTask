@@ -48,6 +48,14 @@ function App() {
             }
           />
           <Route
+            path="/user/:userId"
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/search"
             element={
               <PrivateRoute>

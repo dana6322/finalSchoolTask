@@ -54,19 +54,26 @@ export default function PostCard({
         <div className="d-flex justify-content-between align-items-start mb-2">
           <div className="d-flex align-items-center gap-2">
             {sender?.profilePicture && (
-              <img
-                src={sender.profilePicture}
-                alt={sender.userName}
-                className="rounded-circle"
-                style={{ width: "40px", height: "40px", objectFit: "cover" }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
+              <Link to={`/user/${senderId}`}>
+                <img
+                  src={sender.profilePicture}
+                  alt={sender.userName}
+                  className="rounded-circle"
+                  style={{ width: "40px", height: "40px", objectFit: "cover" }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              </Link>
             )}
             <div>
               <h6 className="card-subtitle mb-0">
-                {sender?.userName || "User"}
+                <Link
+                  to={`/user/${senderId}`}
+                  className="text-decoration-none text-dark"
+                >
+                  {sender?.userName || "User"}
+                </Link>
               </h6>
               <small className="text-muted">
                 {new Date(post.createdAt || "").toLocaleDateString()}
