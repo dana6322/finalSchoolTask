@@ -1,0 +1,74 @@
+/// posts
+###
+
+GET http://localhost:3000/post
+
+###
+
+GET http://localhost:3000/post?sender=2
+
+###
+
+GET http://localhost:3000/post/69751f437a728eb5fa6504d7
+
+###
+POST http://localhost:3000/post
+Content-Type: application/json  
+
+{
+  "text": "112111 total new",
+  "img": "image_url",
+  "sender": "4"
+}
+
+###
+DELETE http://localhost:3000/post/6963bc1c1b636f331dae94a4
+
+
+###
+PUT http://localhost:3000/post/69751f437a728eb5fa6504d7
+Content-Type: application/json  
+
+{
+  "text": "00000000111111010101",
+  "img": "image_url_updated 45",
+  "sender": "2"
+}
+
+
+/// comments
+
+###
+
+GET http://localhost:3000/comment
+
+###
+
+GET http://localhost:3000/comment?postId=6963c025256d36272310d8cc
+
+###
+
+GET http://localhost:3000/comment/69751f9c7a728eb5fa6504e2
+
+###
+POST http://localhost:3000/comment
+Content-Type: application/json
+
+{
+  "postId": "6963c025256d36272310d8cc",
+  "sender": "12",
+  "message": "newwww neww newwww"
+}
+
+###
+DELETE http://localhost:3000/comment/696a10c883f61be9b9914bf4
+
+
+###
+PUT http://localhost:3000/comment/6977cbe5cde4a62f8da6fa22
+Content-Type: application/json
+
+{
+  "message": "Updated message new new new",
+  "sender": "2"
+}
