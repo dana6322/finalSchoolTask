@@ -326,4 +326,53 @@ router.delete("/:id", authenticate, postController.del.bind(postController));
  */
 router.put("/:id", authenticate, postController.update.bind(postController));
 
+/**
+ * @swagger
+ * /post/{id}/like:
+ *   post:
+ *     tags: [Posts]
+ *     summary: Toggle like on a post
+ *     description: Like or unlike a post (requires authentication). If the user has already liked the post, it will unlike it. If the user has not liked the post, it will like it.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Post ID (MongoDB ObjectId)
+ *         example: "507f1f77bcf86cd799439011"
+ *     responses:
+ *       200:
+ *         description: Like toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PostWithPopulatedSender'
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Access token required"
+ *       404:
+ *         description: Post not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               message: "Post not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/:id/like", authenticate, postController.toggleLike.bind(postController));
+
 export default router;

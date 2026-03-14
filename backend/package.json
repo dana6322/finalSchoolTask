@@ -14,7 +14,8 @@
     "testPosts": "tsc && jest --runInBand --detectOpenHandles --forceExit ./src/tests/posts.test.ts",
     "testUsers": "tsc && jest --runInBand --detectOpenHandles --forceExit ./src/tests/users.test.ts",
     "testAuth": "tsc && jest --runInBand --detectOpenHandles --forceExit ./src/tests/auth.test.ts",
-    "testFile": "tsc && jest --runInBand --detectOpenHandles --forceExit ./src/tests/multer.test.ts"
+    "testFile": "tsc && jest --runInBand --detectOpenHandles --forceExit ./src/tests/multer.test.ts",
+    "testLikes": "tsc && jest --runInBand --detectOpenHandles --forceExit ./src/tests/likes.test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
