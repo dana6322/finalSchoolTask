@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import type { Post } from "../types";
@@ -13,6 +13,11 @@ export default function Profile() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [profilePicture, setProfilePicture] = useState("");
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(
+    null,
+  );
+  const [profilePicturePreview, setProfilePicturePreview] = useState("");
+  const profilePicInputRef = useRef<HTMLInputElement>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -41,7 +46,7 @@ export default function Profile() {
       const filteredPosts = response.data.filter(
         (post: Post) =>
           (typeof post.sender === "object" && post.sender._id === user._id) ||
-          post.sender === user._id
+          post.sender === user._id,
       );
       // Sort by createdAt descending (most recent first)
       const sortedPosts = filteredPosts.sort((a: Post, b: Post) => {
@@ -76,14 +81,30 @@ export default function Profile() {
     setIsLoading(true);
 
     try {
+      let updatedProfilePicture = profilePicture;
+
+      // If a new file was selected, upload it first
+      if (profilePictureFile) {
+        const formData = new FormData();
+        formData.append("file", profilePictureFile);
+        const uploadRes = await api.post("/upload", formData, {
+          headers: { "Content-Type": "image/jpeg" },
+        });
+        updatedProfilePicture = uploadRes.data.url;
+        setProfilePicture(updatedProfilePicture);
+      }
+
       await api.put(`/user/${user?._id}`, {
         userName,
         firstName,
         lastName,
-        profilePicture,
+        profilePicture: updatedProfilePicture,
       });
       setMessage("Profile updated successfully");
       setIsEditing(false);
+      setProfilePictureFile(null);
+      setProfilePicturePreview("");
+      if (profilePicInputRef.current) profilePicInputRef.current.value = "";
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || "Failed to update profile");
@@ -177,210 +198,219 @@ export default function Profile() {
 
             {activeTab === "profile" && (
               <>
-            <div className="card mb-4">
-              <div className="card-body">
-                <h5 className="card-title">Profile Information</h5>
-                {!isEditing ? (
-                  <>
-                    {profilePicture && (
+                <div className="card mb-4">
+                  <div className="card-body">
+                    <h5 className="card-title">Profile Information</h5>
+                    {!isEditing ? (
+                      <>
+                        {profilePicture && (
+                          <div className="mb-3">
+                            <img
+                              src={profilePicture}
+                              alt="Profile"
+                              className="img-thumbnail"
+                              style={{
+                                maxWidth: "150px",
+                                height: "150px",
+                                objectFit: "cover",
+                              }}
+                            />
+                          </div>
+                        )}
+                        <p>
+                          <strong>Email:</strong> {user?.email}
+                        </p>
+                        <p>
+                          <strong>Username:</strong> {userName || "Not set"}
+                        </p>
+                        <p>
+                          <strong>First Name:</strong> {firstName || "Not set"}
+                        </p>
+                        <p>
+                          <strong>Last Name:</strong> {lastName || "Not set"}
+                        </p>
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => setIsEditing(true)}
+                        >
+                          Edit Profile
+                        </button>
+                      </>
+                    ) : (
+                      <form onSubmit={handleUpdateProfile}>
+                        <div className="mb-3">
+                          <label htmlFor="email" className="form-label">
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            className="form-control"
+                            id="email"
+                            value={user?.email}
+                            disabled
+                          />
+                        </div>
+
+                        <div className="mb-3">
+                          <label htmlFor="userName" className="form-label">
+                            Username
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="userName"
+                            value={userName}
+                            onChange={(e) => setUserName(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="mb-3">
+                          <label htmlFor="firstName" className="form-label">
+                            First Name
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="firstName"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="mb-3">
+                          <label htmlFor="lastName" className="form-label">
+                            Last Name
+                          </label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="lastName"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="mb-3">
+                          <label
+                            htmlFor="profilePicture"
+                            className="form-label"
+                          >
+                            Profile Picture
+                          </label>
+                          <input
+                            type="file"
+                            className="form-control"
+                            id="profilePicture"
+                            accept="image/*"
+                            ref={profilePicInputRef}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setProfilePictureFile(file);
+                                setProfilePicturePreview(
+                                  URL.createObjectURL(file),
+                                );
+                              }
+                            }}
+                          />
+                          {(profilePicturePreview || profilePicture) && (
+                            <img
+                              src={profilePicturePreview || profilePicture}
+                              alt="Preview"
+                              className="mt-2 img-thumbnail"
+                              style={{
+                                maxWidth: "150px",
+                                height: "150px",
+                                objectFit: "cover",
+                              }}
+                              onError={() => setError("Invalid image")}
+                            />
+                          )}
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="btn btn-success me-2"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? "Saving..." : "Save Changes"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => setIsEditing(false)}
+                        >
+                          Cancel
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+
+                <div className="card mb-4">
+                  <div className="card-body">
+                    <h5 className="card-title">Change Password</h5>
+                    <form onSubmit={handleChangePassword}>
                       <div className="mb-3">
-                        <img
-                          src={profilePicture}
-                          alt="Profile"
-                          className="img-thumbnail"
-                          style={{
-                            maxWidth: "150px",
-                            height: "150px",
-                            objectFit: "cover",
-                          }}
+                        <label htmlFor="currentPassword" className="form-label">
+                          Current Password
+                        </label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          id="currentPassword"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          required
                         />
                       </div>
-                    )}
-                    <p>
-                      <strong>Email:</strong> {user?.email}
-                    </p>
-                    <p>
-                      <strong>Username:</strong> {userName || "Not set"}
-                    </p>
-                    <p>
-                      <strong>First Name:</strong>{" "}
-                      {firstName || "Not set"}
-                    </p>
-                    <p>
-                      <strong>Last Name:</strong>{" "}
-                      {lastName || "Not set"}
-                    </p>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      Edit Profile
-                    </button>
-                  </>
-                ) : (
-                  <form onSubmit={handleUpdateProfile}>
-                    <div className="mb-3">
-                      <label htmlFor="email" className="form-label">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        className="form-control"
-                        id="email"
-                        value={user?.email}
-                        disabled
-                      />
-                    </div>
 
-                    <div className="mb-3">
-                      <label htmlFor="userName" className="form-label">
-                        Username
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="userName"
-                        value={userName}
-                        onChange={(e) => setUserName(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <label htmlFor="firstName" className="form-label">
-                        First Name
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="firstName"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <label htmlFor="lastName" className="form-label">
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="lastName"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <label htmlFor="profilePicture" className="form-label">
-                        Profile Picture URL
-                      </label>
-                      <input
-                        type="url"
-                        className="form-control"
-                        id="profilePicture"
-                        value={profilePicture || ""}
-                        onChange={(e) => setProfilePicture(e.target.value)}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                      {profilePicture && (
-                        <img
-                          src={profilePicture}
-                          alt="Preview"
-                          className="mt-2 img-thumbnail"
-                          style={{
-                            maxWidth: "150px",
-                            height: "150px",
-                            objectFit: "cover",
-                          }}
-                          onError={() => setError("Invalid image URL")}
+                      <div className="mb-3">
+                        <label htmlFor="newPassword" className="form-label">
+                          New Password
+                        </label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          id="newPassword"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          required
                         />
-                      )}
-                    </div>
+                      </div>
 
-                    <button
-                      type="submit"
-                      className="btn btn-success me-2"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Saving..." : "Save Changes"}
+                      <div className="mb-3">
+                        <label htmlFor="confirmPassword" className="form-label">
+                          Confirm New Password
+                        </label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          id="confirmPassword"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="btn btn-warning"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "Changing..." : "Change Password"}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <div className="card-body">
+                    <button className="btn btn-danger" onClick={handleLogout}>
+                      Logout
                     </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setIsEditing(false)}
-                    >
-                      Cancel
-                    </button>
-                  </form>
-                )}
-              </div>
-            </div>
-
-            <div className="card mb-4">
-              <div className="card-body">
-                <h5 className="card-title">Change Password</h5>
-                <form onSubmit={handleChangePassword}>
-                  <div className="mb-3">
-                    <label htmlFor="currentPassword" className="form-label">
-                      Current Password
-                    </label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      id="currentPassword"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      required
-                    />
                   </div>
-
-                  <div className="mb-3">
-                    <label htmlFor="newPassword" className="form-label">
-                      New Password
-                    </label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      id="newPassword"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label htmlFor="confirmPassword" className="form-label">
-                      Confirm New Password
-                    </label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      id="confirmPassword"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-warning"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Changing..." : "Change Password"}
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-body">
-                <button className="btn btn-danger" onClick={handleLogout}>
-                  Logout
-                </button>
-              </div>
-            </div>
+                </div>
               </>
             )}
 
@@ -394,13 +424,14 @@ export default function Profile() {
                   </div>
                 ) : userPosts.length === 0 ? (
                   <div className="alert alert-info">
-                    You haven't created any posts yet. Start sharing your thoughts!
+                    You haven't created any posts yet. Start sharing your
+                    thoughts!
                   </div>
                 ) : (
                   <div>
                     {userPosts.map((post) => (
-                      <PostCard 
-                        key={post._id} 
+                      <PostCard
+                        key={post._id}
                         post={post}
                         currentUserId={user._id}
                         onPostDeleted={() => fetchUserPosts()}
