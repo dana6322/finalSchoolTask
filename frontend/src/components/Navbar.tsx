@@ -15,7 +15,7 @@ export default function Navbar() {
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
       <div className="container-fluid">
         <Link className="navbar-brand fw-bold" to="/">
-          📱 SocialHub
+          SocialHub
         </Link>
         <button
           className="navbar-toggler"
@@ -39,7 +39,7 @@ export default function Navbar() {
                 </li>
                 <li className="nav-item">
                   <Link className="nav-link" to="/search">
-                    🔍 AI Search
+                    AI Search
                   </Link>
                 </li>
                 <li className="nav-item">

@@ -53,7 +53,7 @@ export default function Search() {
     <div className="container mt-4">
       <div className="row">
         <div className="col-lg-8 mx-auto">
-          <h1 className="mb-4">🔍 AI-Powered Search</h1>
+          <h1 className="mb-4">AI-Powered Search</h1>
           <p className="text-muted mb-4">
             Ask anything about the posts and discussions in SocialHub. Our AI
             will find and summarize relevant content for you.

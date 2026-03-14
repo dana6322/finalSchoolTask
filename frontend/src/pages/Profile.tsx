@@ -230,7 +230,7 @@ export default function Profile() {
                   className="btn btn-outline-primary btn-sm mt-2"
                   onClick={() => setIsEditing(true)}
                 >
-                  ✏️ Edit Profile
+                  Edit Profile
                 </button>
               )}
             </div>

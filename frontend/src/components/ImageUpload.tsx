@@ -140,14 +140,12 @@ export default function ImageUpload({
             className="btn btn-sm btn-outline-secondary position-absolute bottom-0 end-0"
             onClick={openPicker}
             style={{
-              borderRadius: "50%",
-              width: "32px",
-              height: "32px",
-              padding: 0,
+              fontSize: "0.7rem",
+              padding: "2px 8px",
             }}
             title="Change photo"
           >
-            📷
+            Change
           </button>
         </div>
       ) : (

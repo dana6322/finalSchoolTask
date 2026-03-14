@@ -88,7 +88,7 @@ export default function PostCard({
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "🗑️ Delete"}
+              {isDeleting ? "Deleting..." : "Delete"}
             </button>
           )}
         </div>
@@ -117,7 +117,7 @@ export default function PostCard({
       {/* Footer */}
       <div className="card-body pt-2">
         <Link to={`/post/${post._id}`} className="btn btn-sm btn-outline-primary">
-          💬 View Comments
+          View Comments
         </Link>
       </div>
     </div>
