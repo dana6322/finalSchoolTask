@@ -36,6 +36,8 @@ describe("Sample Test Suite", () => {
       expect(response.body.img).toBe(post.img);
       expect(response.body).toHaveProperty("createdAt");
       expect(response.body).toHaveProperty("updatedAt");
+      expect(response.body.likes).toBeDefined();
+      expect(response.body.likes).toEqual([]);
     }
   });
 

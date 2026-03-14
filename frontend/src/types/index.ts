@@ -13,6 +13,7 @@ export interface Post {
   text: string;
   img: string;
   sender: string | User;
+  likes: string[];
   createdAt?: string;
   updatedAt?: string;
 }

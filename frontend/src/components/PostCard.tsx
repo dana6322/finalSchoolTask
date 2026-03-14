@@ -23,6 +23,11 @@ export default function PostCard({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Like state
+  const [likes, setLikes] = useState<string[]>(post.likes || []);
+  const [isLiking, setIsLiking] = useState(false);
+  const isLiked = likes.includes(currentUserId);
+
   // Edit state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editText, setEditText] = useState(post.text || "");
@@ -135,6 +140,19 @@ export default function PostCard({
     setCommentCount(count);
   }, []);
 
+  const handleToggleLike = async () => {
+    if (isLiking) return;
+    setIsLiking(true);
+    try {
+      const res = await api.post(`/post/${post._id}/like`);
+      setLikes(res.data.likes || []);
+    } catch (error) {
+      console.error("Failed to toggle like:", error);
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
   return (
     <>
       <div
@@ -244,7 +262,21 @@ export default function PostCard({
         )}
 
         {/* Footer */}
-        <div className="card-body pt-2">
+        <div className="card-body pt-2 d-flex align-items-center gap-3">
+          <button
+            className="btn btn-sm p-0 d-inline-flex align-items-center gap-1"
+            onClick={handleToggleLike}
+            disabled={isLiking}
+            style={{
+              fontSize: "0.95rem",
+              background: "none",
+              border: "none",
+              color: isLiked ? "#e0245e" : "#6c757d",
+            }}
+          >
+            <i className={isLiked ? "fa-solid fa-heart" : "fa-regular fa-heart"}></i>
+            <span>{likes.length}</span>
+          </button>
           <button
             className="btn btn-sm p-0 text-muted d-inline-flex align-items-center gap-1"
             onClick={() => setDrawerOpen(true)}
