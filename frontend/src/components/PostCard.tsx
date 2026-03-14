@@ -1,6 +1,6 @@
 import { type Post, type User } from "../types";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "../services/api";
 
 interface PostCardProps {
@@ -16,11 +16,24 @@ export default function PostCard({
 }: PostCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   // Check if sender is an object (populated) or string (ID only)
   const sender = post.sender ? (post.sender as User) : null;
   const senderId =
     typeof post.sender === "string" ? post.sender : sender?._id || null;
+
+  useEffect(() => {
+    const fetchCommentCount = async () => {
+      try {
+        const res = await api.get(`/comment?postId=${post._id}`);
+        setCommentCount(Array.isArray(res.data) ? res.data.length : 0);
+      } catch {
+        setCommentCount(0);
+      }
+    };
+    fetchCommentCount();
+  }, [post._id]);
 
   const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this post?")) {
@@ -40,7 +53,10 @@ export default function PostCard({
   const canDelete = senderId === currentUserId;
 
   return (
-    <div className="card mb-4 shadow-sm border-0" style={{ borderRadius: "12px", overflow: "hidden" }}>
+    <div
+      className="card mb-4 shadow-sm border-0"
+      style={{ borderRadius: "12px", overflow: "hidden" }}
+    >
       {/* Header: user info + delete */}
       <div className="card-body pb-2">
         <div className="d-flex justify-content-between align-items-center">
@@ -51,7 +67,12 @@ export default function PostCard({
                   src={sender.profilePicture}
                   alt={sender.userName}
                   className="rounded-circle"
-                  style={{ width: "42px", height: "42px", objectFit: "cover", border: "2px solid #e9ecef" }}
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                    objectFit: "cover",
+                    border: "2px solid #e9ecef",
+                  }}
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
                   }}
@@ -88,7 +109,13 @@ export default function PostCard({
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? (
+                "Deleting..."
+              ) : (
+                <>
+                  <i className="fa-solid fa-trash"></i> Delete
+                </>
+              )}
             </button>
           )}
         </div>
@@ -116,8 +143,13 @@ export default function PostCard({
 
       {/* Footer */}
       <div className="card-body pt-2">
-        <Link to={`/post/${post._id}`} className="btn btn-sm btn-outline-primary">
-          View Comments
+        <Link
+          to={`/post/${post._id}`}
+          className="text-decoration-none text-muted d-inline-flex align-items-center gap-1"
+          style={{ fontSize: "0.95rem" }}
+        >
+          <i className="fa-regular fa-comment"></i>
+          <span>{commentCount}</span>
         </Link>
       </div>
     </div>
