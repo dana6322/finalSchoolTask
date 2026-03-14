@@ -1,8 +1,9 @@
 import { type Post, type User } from "../types";
 import { Link } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import api from "../services/api";
 import ImageUpload from "./ImageUpload";
+import CommentDrawer from "./CommentDrawer";
 
 interface PostCardProps {
   post: Post;
@@ -19,6 +20,7 @@ export default function PostCard({
   const [imageError, setImageError] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Edit state
@@ -128,6 +130,10 @@ export default function PostCard({
   };
 
   const canEdit = senderId === currentUserId;
+
+  const handleCommentCountChange = useCallback((count: number) => {
+    setCommentCount(count);
+  }, []);
 
   return (
     <>
@@ -239,16 +245,25 @@ export default function PostCard({
 
         {/* Footer */}
         <div className="card-body pt-2">
-          <Link
-            to={`/post/${post._id}`}
-            className="text-decoration-none text-muted d-inline-flex align-items-center gap-1"
-            style={{ fontSize: "0.95rem" }}
+          <button
+            className="btn btn-sm p-0 text-muted d-inline-flex align-items-center gap-1"
+            onClick={() => setDrawerOpen(true)}
+            style={{ fontSize: "0.95rem", background: "none", border: "none" }}
           >
             <i className="fa-regular fa-comment"></i>
             <span>{commentCount}</span>
-          </Link>
+          </button>
         </div>
       </div>
+
+      {/* Comment Drawer */}
+      <CommentDrawer
+        postId={post._id}
+        currentUserId={currentUserId}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onCountChange={handleCommentCountChange}
+      />
 
       {/* Edit Post Modal */}
       {showEditModal && (

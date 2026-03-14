@@ -171,8 +171,12 @@ export default function Profile() {
 
   if (loadingProfile) {
     return (
-      <div className="container mt-5 text-center">
-        <div className="spinner-border" role="status">
+      <div className="feed-content text-center py-5">
+        <div
+          className="spinner-border"
+          role="status"
+          style={{ color: "var(--primary)" }}
+        >
           <span className="visually-hidden">Loading profile...</span>
         </div>
       </div>
@@ -181,171 +185,190 @@ export default function Profile() {
 
   if (!profileUser) {
     return (
-      <div className="container mt-5">
+      <div className="feed-content">
         <div className="alert alert-danger">User not found.</div>
       </div>
     );
   }
 
   return (
-    <div className="container mt-4">
-      <div className="row">
-        <div className="col-lg-8 mx-auto">
-          {/* Profile Header */}
-          <div className="card mb-4">
-            <div className="card-body text-center">
-              {/* Profile Picture */}
-              <div className="mb-3">
-                {profilePicture ? (
-                  <img
-                    src={profilePicture}
-                    alt="Profile"
-                    className="rounded-circle"
-                    style={{
-                      width: "150px",
-                      height: "150px",
-                      objectFit: "cover",
-                      border: "3px solid #dee2e6",
-                    }}
-                  />
-                ) : (
-                  <div
-                    className="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center"
-                    style={{ width: "150px", height: "150px" }}
-                  >
-                    <span className="text-white" style={{ fontSize: "3rem" }}>
-                      {(profileUser.userName || profileUser.email || "?")
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
-                  </div>
-                )}
-              </div>
+    <>
+      {/* Top bar */}
+      <div className="app-topbar">
+        <h5 className="mb-0 fw-bold">
+          {isOwnProfile ? "My Profile" : profileUser.userName || "Profile"}
+        </h5>
+        {isOwnProfile && !isEditing && (
+          <div className="topbar-actions">
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={() => setIsEditing(true)}
+              style={{ borderRadius: "20px", padding: "6px 18px" }}
+            >
+              <i className="fa-solid fa-pen"></i> Edit Profile
+            </button>
+          </div>
+        )}
+      </div>
 
-              <h3 className="mb-1">{profileUser.userName || "Unknown User"}</h3>
-              <p className="text-muted mb-2">{profileUser.email}</p>
-
-              {isOwnProfile && !isEditing && (
-                <button
-                  className="btn btn-outline-primary btn-sm mt-2"
-                  onClick={() => setIsEditing(true)}
+      <div className="feed-content">
+        {/* Profile Header */}
+        <div className="card mb-4">
+          <div className="card-body text-center py-4">
+            {/* Profile Picture */}
+            <div className="mb-3">
+              {profilePicture ? (
+                <img
+                  src={profilePicture}
+                  alt="Profile"
+                  className="rounded-circle"
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    objectFit: "cover",
+                    border: "3px solid var(--border-color)",
+                  }}
+                />
+              ) : (
+                <div
+                  className="rounded-circle d-inline-flex align-items-center justify-content-center"
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    background: "var(--primary)",
+                  }}
                 >
-                  Edit Profile
-                </button>
+                  <span className="text-white" style={{ fontSize: "2.5rem" }}>
+                    {(profileUser.userName || profileUser.email || "?")
+                      .charAt(0)
+                      .toUpperCase()}
+                  </span>
+                </div>
               )}
             </div>
+
+            <h4 className="mb-1">{profileUser.userName || "Unknown User"}</h4>
+            <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+              {profileUser.email}
+            </p>
           </div>
-
-          {message && (
-            <div className="alert alert-success" role="alert">
-              {message}
-            </div>
-          )}
-
-          {error && (
-            <div className="alert alert-danger" role="alert">
-              {error}
-            </div>
-          )}
-
-          {/* Edit Form (own profile only) */}
-          {isOwnProfile && isEditing && (
-            <div className="card mb-4">
-              <div className="card-body">
-                <h5 className="card-title">Edit Profile</h5>
-                <form onSubmit={handleUpdateProfile}>
-                  <div className="mb-3">
-                    <label htmlFor="userName" className="form-label">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="userName"
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Profile Picture</label>
-                    <ImageUpload
-                      preview={profilePicturePreview || profilePicture}
-                      onFileSelect={handleProfileFileSelect}
-                      onRemove={removeProfileImage}
-                      shape="circle"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-success me-2"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Saving..." : "Save Changes"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      setIsEditing(false);
-                      setProfilePictureFile(null);
-                      setProfilePicturePreview("");
-                      setUserName(profileUser.userName || "");
-                      setProfilePicture(profileUser.profilePicture || "");
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* User's Posts */}
-          <h5 className="mb-3">
-            {isOwnProfile
-              ? "My Posts"
-              : `Posts by ${profileUser.userName || "this user"}`}
-          </h5>
-
-          {loadingPosts ? (
-            <div className="text-center">
-              <div className="spinner-border" role="status">
-                <span className="visually-hidden">Loading posts...</span>
-              </div>
-            </div>
-          ) : userPosts.length === 0 ? (
-            <div className="alert alert-info">
-              {isOwnProfile
-                ? "You haven't created any posts yet. Start sharing your thoughts!"
-                : "This user hasn't created any posts yet."}
-            </div>
-          ) : (
-            <div>
-              {userPosts.map((post) => (
-                <PostCard
-                  key={post._id}
-                  post={post}
-                  currentUserId={loggedInUser?._id || ""}
-                  onPostDeleted={() => fetchUserPosts()}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Logout (own profile only) */}
-          {isOwnProfile && (
-            <div className="card mt-4 mb-4">
-              <div className="card-body">
-                <button className="btn btn-danger" onClick={handleLogout}>
-                  Logout
-                </button>
-              </div>
-            </div>
-          )}
         </div>
+
+        {message && (
+          <div className="alert alert-success" role="alert">
+            {message}
+          </div>
+        )}
+
+        {error && (
+          <div className="alert alert-danger" role="alert">
+            {error}
+          </div>
+        )}
+
+        {/* Edit Form (own profile only) */}
+        {isOwnProfile && isEditing && (
+          <div className="card mb-4">
+            <div className="card-body">
+              <h5 className="card-title mb-3">Edit Profile</h5>
+              <form onSubmit={handleUpdateProfile}>
+                <div className="mb-3">
+                  <label htmlFor="userName" className="form-label">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="userName"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Profile Picture</label>
+                  <ImageUpload
+                    preview={profilePicturePreview || profilePicture}
+                    onFileSelect={handleProfileFileSelect}
+                    onRemove={removeProfileImage}
+                    shape="circle"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary me-2"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Saving..." : "Save Changes"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setProfilePictureFile(null);
+                    setProfilePicturePreview("");
+                    setUserName(profileUser.userName || "");
+                    setProfilePicture(profileUser.profilePicture || "");
+                  }}
+                >
+                  Cancel
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* User's Posts */}
+        <h5 className="mb-3">
+          {isOwnProfile
+            ? "My Posts"
+            : `Posts by ${profileUser.userName || "this user"}`}
+        </h5>
+
+        {loadingPosts ? (
+          <div className="text-center">
+            <div
+              className="spinner-border"
+              role="status"
+              style={{ color: "var(--primary)" }}
+            >
+              <span className="visually-hidden">Loading posts...</span>
+            </div>
+          </div>
+        ) : userPosts.length === 0 ? (
+          <div className="alert alert-info">
+            {isOwnProfile
+              ? "You haven't created any posts yet. Start sharing your thoughts!"
+              : "This user hasn't created any posts yet."}
+          </div>
+        ) : (
+          <div>
+            {userPosts.map((post) => (
+              <PostCard
+                key={post._id}
+                post={post}
+                currentUserId={loggedInUser?._id || ""}
+                onPostDeleted={() => fetchUserPosts()}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Logout (own profile only) */}
+        {isOwnProfile && (
+          <div className="text-center mt-4 mb-4">
+            <button
+              className="btn btn-outline-danger btn-sm"
+              onClick={handleLogout}
+              style={{ borderRadius: "20px", padding: "6px 24px" }}
+            >
+              <i className="fa-solid fa-right-from-bracket"></i> Logout
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }

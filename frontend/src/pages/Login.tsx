@@ -1,84 +1,102 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [localError, setLocalError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [localError, setLocalError] = useState("");
   const { login, isLoading, error } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLocalError('');
-    
+    setLocalError("");
+
     if (!email || !password) {
-      setLocalError('Email and password are required');
+      setLocalError("Email and password are required");
       return;
     }
 
     try {
       await login(email, password);
-      navigate('/');
+      navigate("/");
     } catch {
-      setLocalError(error || 'Login failed');
+      setLocalError(error || "Login failed");
     }
   };
 
   return (
-    <div className="container mt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-6 col-lg-5">
-          <div className="card shadow-lg">
-            <div className="card-body p-5">
-              <h2 className="card-title text-center mb-4">Login</h2>
-              
-              {(localError || error) && (
-                <div className="alert alert-danger" role="alert">
-                  {localError || error}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit}>
-                <div className="mb-3">
-                  <label htmlFor="email" className="form-label">Email</label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="password" className="form-label">Password</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="btn btn-primary w-100 mb-3"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Logging in...' : 'Login'}
-                </button>
-              </form>
-
-              <p className="text-center text-muted">
-                Don't have an account? <Link to="/register">Register here</Link>
-              </p>
+    <div className="auth-page">
+      <div className="auth-card card shadow-lg">
+        <div className="card-body p-5">
+          <div className="text-center mb-4">
+            <div
+              className="d-inline-flex align-items-center justify-content-center mb-3"
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "12px",
+                background: "var(--primary)",
+                color: "#fff",
+                fontWeight: 800,
+                fontSize: "1.2rem",
+              }}
+            >
+              S
             </div>
+            <h2 className="fw-bold">Welcome Back</h2>
+            <p className="text-muted">Sign in to your SocialHub account</p>
           </div>
+
+          {(localError || error) && (
+            <div className="alert alert-danger" role="alert">
+              {localError || error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label htmlFor="email" className="form-label">
+                Email
+              </label>
+              <input
+                type="email"
+                className="form-control"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+              />
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="password" className="form-label">
+                Password
+              </label>
+              <input
+                type="password"
+                className="form-control"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-primary w-100 mb-3"
+              disabled={isLoading}
+              style={{ borderRadius: "10px", padding: "10px" }}
+            >
+              {isLoading ? "Logging in..." : "Sign In"}
+            </button>
+          </form>
+
+          <p className="text-center text-muted mb-0">
+            Don't have an account? <Link to="/register">Register here</Link>
+          </p>
         </div>
       </div>
     </div>
