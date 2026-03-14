@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import type { Post, User } from "../types";
 import api from "../services/api";
 import PostCard from "../components/PostCard";
+import ImageUpload from "../components/ImageUpload";
 
 export default function Profile() {
   const { userId } = useParams<{ userId: string }>();
@@ -23,12 +24,22 @@ export default function Profile() {
     null,
   );
   const [profilePicturePreview, setProfilePicturePreview] = useState("");
-  const profilePicInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+
+  const handleProfileFileSelect = (file: File) => {
+    setProfilePictureFile(file);
+    setProfilePicturePreview(URL.createObjectURL(file));
+  };
+
+  const removeProfileImage = () => {
+    setProfilePictureFile(null);
+    setProfilePicturePreview("");
+    setProfilePicture("");
+  };
 
   // Fetch the profile user's data
   useEffect(() => {
@@ -143,7 +154,6 @@ export default function Profile() {
       setIsEditing(false);
       setProfilePictureFile(null);
       setProfilePicturePreview("");
-      if (profilePicInputRef.current) profilePicInputRef.current.value = "";
       // Refresh the logged-in user context so changes reflect everywhere
       await refreshUser();
     } catch (err: unknown) {
@@ -212,9 +222,7 @@ export default function Profile() {
                 )}
               </div>
 
-              <h3 className="mb-1">
-                {profileUser.userName || "Unknown User"}
-              </h3>
+              <h3 className="mb-1">{profileUser.userName || "Unknown User"}</h3>
               <p className="text-muted mb-2">{profileUser.email}</p>
 
               {isOwnProfile && !isEditing && (
@@ -260,36 +268,13 @@ export default function Profile() {
                   </div>
 
                   <div className="mb-3">
-                    <label htmlFor="profilePicture" className="form-label">
-                      Profile Picture
-                    </label>
-                    <input
-                      type="file"
-                      className="form-control"
-                      id="profilePicture"
-                      accept="image/*"
-                      ref={profilePicInputRef}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setProfilePictureFile(file);
-                          setProfilePicturePreview(URL.createObjectURL(file));
-                        }
-                      }}
+                    <label className="form-label">Profile Picture</label>
+                    <ImageUpload
+                      preview={profilePicturePreview || profilePicture}
+                      onFileSelect={handleProfileFileSelect}
+                      onRemove={removeProfileImage}
+                      shape="circle"
                     />
-                    {(profilePicturePreview || profilePicture) && (
-                      <img
-                        src={profilePicturePreview || profilePicture}
-                        alt="Preview"
-                        className="mt-2 rounded-circle"
-                        style={{
-                          width: "100px",
-                          height: "100px",
-                          objectFit: "cover",
-                        }}
-                        onError={() => setError("Invalid image")}
-                      />
-                    )}
                   </div>
 
                   <button
@@ -308,8 +293,6 @@ export default function Profile() {
                       setProfilePicturePreview("");
                       setUserName(profileUser.userName || "");
                       setProfilePicture(profileUser.profilePicture || "");
-                      if (profilePicInputRef.current)
-                        profilePicInputRef.current.value = "";
                     }}
                   >
                     Cancel
@@ -321,7 +304,9 @@ export default function Profile() {
 
           {/* User's Posts */}
           <h5 className="mb-3">
-            {isOwnProfile ? "My Posts" : `Posts by ${profileUser.userName || "this user"}`}
+            {isOwnProfile
+              ? "My Posts"
+              : `Posts by ${profileUser.userName || "this user"}`}
           </h5>
 
           {loadingPosts ? (
