@@ -40,59 +40,84 @@ export default function PostCard({
   const canDelete = senderId === currentUserId;
 
   return (
-    <div className="card mb-3 shadow-sm">
-      {!imageError && post.img && (
-        <img
-          src={post.img}
-          alt="Post"
-          className="card-img-top"
-          style={{ height: "300px", objectFit: "cover" }}
-          onError={() => setImageError(true)}
-        />
-      )}
-      <div className="card-body">
-        <div className="d-flex justify-content-between align-items-start mb-2">
+    <div className="card mb-4 shadow-sm border-0" style={{ borderRadius: "12px", overflow: "hidden" }}>
+      {/* Header: user info + delete */}
+      <div className="card-body pb-2">
+        <div className="d-flex justify-content-between align-items-center">
           <div className="d-flex align-items-center gap-2">
-            {sender?.profilePicture && (
-              <Link to={`/user/${senderId}`}>
+            <Link to={`/user/${senderId}`}>
+              {sender?.profilePicture ? (
                 <img
                   src={sender.profilePicture}
                   alt={sender.userName}
                   className="rounded-circle"
-                  style={{ width: "40px", height: "40px", objectFit: "cover" }}
+                  style={{ width: "42px", height: "42px", objectFit: "cover", border: "2px solid #e9ecef" }}
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
                   }}
                 />
-              </Link>
-            )}
-            <div>
-              <h6 className="card-subtitle mb-0">
-                <Link
-                  to={`/user/${senderId}`}
-                  className="text-decoration-none text-dark"
+              ) : (
+                <div
+                  className="rounded-circle bg-secondary d-flex align-items-center justify-content-center"
+                  style={{ width: "42px", height: "42px" }}
                 >
-                  {sender?.userName || "User"}
-                </Link>
-              </h6>
-              <small className="text-muted">
-                {new Date(post.createdAt || "").toLocaleDateString()}
-              </small>
+                  <span className="text-white fw-bold">
+                    {(sender?.userName || "U").charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+            </Link>
+            <div>
+              <Link
+                to={`/user/${senderId}`}
+                className="text-decoration-none text-dark fw-semibold"
+                style={{ fontSize: "0.95rem" }}
+              >
+                {sender?.userName || "User"}
+              </Link>
+              <div>
+                <small className="text-muted">
+                  {new Date(post.createdAt || "").toLocaleDateString()}
+                </small>
+              </div>
             </div>
           </div>
           {canDelete && (
             <button
-              className="btn btn-sm btn-danger"
+              className="btn btn-sm btn-outline-danger"
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? "Deleting..." : "🗑️ Delete"}
             </button>
           )}
         </div>
-        <p className="card-text">{post.text}</p>
-        <Link to={`/post/${post._id}`} className="btn btn-sm btn-primary">
-          View Comments
+      </div>
+
+      {/* Post text */}
+      {post.text && (
+        <div className="px-3 pb-2">
+          <p className="card-text mb-0">{post.text}</p>
+        </div>
+      )}
+
+      {/* Post image — full width, natural aspect ratio */}
+      {!imageError && post.img && (
+        <div style={{ backgroundColor: "#f8f9fa" }}>
+          <img
+            src={post.img}
+            alt="Post"
+            className="w-100"
+            style={{ maxHeight: "600px", objectFit: "contain" }}
+            onError={() => setImageError(true)}
+          />
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="card-body pt-2">
+        <Link to={`/post/${post._id}`} className="btn btn-sm btn-outline-primary">
+          💬 View Comments
         </Link>
       </div>
     </div>
