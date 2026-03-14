@@ -1,10 +1,12 @@
 import express, { Express } from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import path from "path";
 import postRouter from "./routes/postRoute";
 import commentRouter from "./routes/commentRoute";
 import authRoute from "./routes/authRoute";
 import userRouter from "./routes/userRoute";
+import multerRouter from "./routes/multerRoute";
 import { swaggerUi, swaggerSpec } from "./swagger";
 
 import dotenv from "dotenv";
@@ -13,6 +15,9 @@ dotenv.config({ path: ".env.dev" });
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve uploaded files from the public/uploads folder
+app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 // Swagger UI setup
 app.use(
@@ -30,6 +35,8 @@ app.use("/post", postRouter);
 app.use("/comment", commentRouter);
 app.use("/user", userRouter);
 app.use("/auth", authRoute);
+app.use("/uploads", express.static("public/uploads"));
+app.use("/upload", multerRouter);
 
 // Swagger JSON endpoint
 app.get("/api-docs.json", (req, res) => {

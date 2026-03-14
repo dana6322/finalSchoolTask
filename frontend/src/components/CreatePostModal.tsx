@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import api from '../services/api';
+import { useState, useRef } from "react";
+import api from "../services/api";
 
 interface CreatePostModalProps {
   show: boolean;
@@ -7,31 +7,57 @@ interface CreatePostModalProps {
   onPostCreated: () => void;
 }
 
-export default function CreatePostModal({ show, onClose, onPostCreated }: CreatePostModalProps) {
-  const [text, setText] = useState('');
-  const [img, setImg] = useState('');
+export default function CreatePostModal({
+  show,
+  onClose,
+  onPostCreated,
+}: CreatePostModalProps) {
+  const [text, setText] = useState("");
+  const [imgFile, setImgFile] = useState<File | null>(null);
+  const [imgPreview, setImgPreview] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImgFile(file);
+      setImgPreview(URL.createObjectURL(file));
+      setError("");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
-    if (!text.trim() || !img.trim()) {
-      setError('Both text and image URL are required');
+    if (!text.trim() || !imgFile) {
+      setError("Both text and an image file are required");
       return;
     }
 
     setIsLoading(true);
     try {
-      await api.post('/post', { text, img });
-      setText('');
-      setImg('');
+      // Upload the image file first
+      const formData = new FormData();
+      formData.append("file", imgFile);
+      const uploadRes = await api.post("/upload", formData, {
+        headers: { "Content-Type": "image/jpeg" },
+      });
+      const imgUrl = uploadRes.data.url;
+
+      // Create the post with the uploaded image URL
+      await api.post("/post", { text, img: imgUrl });
+      setText("");
+      setImgFile(null);
+      setImgPreview("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       onPostCreated();
       onClose();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Failed to create post');
+      setError(error.response?.data?.message || "Failed to create post");
     } finally {
       setIsLoading(false);
     }
@@ -40,7 +66,10 @@ export default function CreatePostModal({ show, onClose, onPostCreated }: Create
   if (!show) return null;
 
   return (
-    <div className="modal d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+    <div
+      className="modal d-block"
+      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+    >
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
           <div className="modal-header">
@@ -77,24 +106,23 @@ export default function CreatePostModal({ show, onClose, onPostCreated }: Create
 
               <div className="mb-3">
                 <label htmlFor="img" className="form-label">
-                  Image URL
+                  Image
                 </label>
                 <input
-                  type="url"
+                  type="file"
                   className="form-control"
                   id="img"
-                  value={img}
-                  onChange={(e) => setImg(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
                   disabled={isLoading}
                 />
-                {img && (
+                {imgPreview && (
                   <img
-                    src={img}
+                    src={imgPreview}
                     alt="Preview"
                     className="mt-2 img-fluid"
-                    style={{ maxHeight: '200px' }}
-                    onError={() => setError('Invalid image URL')}
+                    style={{ maxHeight: "200px" }}
                   />
                 )}
               </div>
@@ -113,7 +141,7 @@ export default function CreatePostModal({ show, onClose, onPostCreated }: Create
                 className="btn btn-primary"
                 disabled={isLoading}
               >
-                {isLoading ? 'Creating...' : 'Create Post'}
+                {isLoading ? "Creating..." : "Create Post"}
               </button>
             </div>
           </form>
