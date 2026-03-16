@@ -79,7 +79,9 @@ export default function Profile() {
         const targetId = profileUser._id;
         const filteredPosts = response.data.filter(
           (post: Post) =>
-            (typeof post.sender === "object" && post.sender !== null && post.sender._id === targetId) ||
+            (typeof post.sender === "object" &&
+              post.sender !== null &&
+              post.sender._id === targetId) ||
             post.sender === targetId,
         );
         const sortedPosts = filteredPosts.sort((a: Post, b: Post) => {
@@ -105,7 +107,9 @@ export default function Profile() {
       const targetId = profileUser._id;
       const filteredPosts = response.data.filter(
         (post: Post) =>
-          (typeof post.sender === "object" && post.sender !== null && post.sender._id === targetId) ||
+          (typeof post.sender === "object" &&
+            post.sender !== null &&
+            post.sender._id === targetId) ||
           post.sender === targetId,
       );
       const sortedPosts = filteredPosts.sort((a: Post, b: Post) => {
@@ -248,7 +252,7 @@ export default function Profile() {
             </div>
 
             <h4 className="mb-1">{profileUser.userName || "Unknown User"}</h4>
-            <p className="text-muted mb-0" style={{ fontSize: "0.9rem" }}>
+            <p className="text-muted mb-2" style={{ fontSize: "0.9rem" }}>
               {profileUser.email}
             </p>
           </div>

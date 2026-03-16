@@ -138,9 +138,6 @@ describe("Users Test Suite", () => {
     expect(response.status).toBe(200);
     expect(response.body._id).toBe(loginUser._id);
     expect(response.body.email).toBe(loginUser.email);
-    expect(response.body).toHaveProperty("firstName");
-    expect(response.body).toHaveProperty("lastName");
-    expect(response.body).toHaveProperty("bio");
     expect(response.body).toHaveProperty("profilePicture");
     expect(response.body).toHaveProperty("createdAt");
     expect(response.body).toHaveProperty("updatedAt");
@@ -150,9 +147,6 @@ describe("Users Test Suite", () => {
 
   test("Update user profile with new fields succeeds", async () => {
     const updateData = {
-      firstName: "John",
-      lastName: "Doe",
-      bio: "This is my bio",
       profilePicture: "https://example.com/pic.jpg",
     };
     const response = await request(app)
@@ -160,15 +154,12 @@ describe("Users Test Suite", () => {
       .set("Authorization", "Bearer " + loginUser.token)
       .send(updateData);
     expect(response.status).toBe(200);
-    expect(response.body.firstName).toBe(updateData.firstName);
-    expect(response.body.lastName).toBe(updateData.lastName);
-    expect(response.body.bio).toBe(updateData.bio);
     expect(response.body.profilePicture).toBe(updateData.profilePicture);
   });
 
   test("Update user profile - prevent password change via PUT", async () => {
     const updateData = {
-      firstName: "Jane",
+      userName: "Jane",
       password: "newPassword123",
     };
     const response = await request(app)
@@ -181,7 +172,7 @@ describe("Users Test Suite", () => {
 
   test("Update user profile - prevent email change via PUT", async () => {
     const updateData = {
-      firstName: "Jane",
+      userName: "Jane",
       email: "newemail@test.com",
     };
     const response = await request(app)

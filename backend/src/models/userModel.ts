@@ -16,18 +16,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
     },
-    firstName: {
-      type: String,
-      default: "",
-    },
-    lastName: {
-      type: String,
-      default: "",
-    },
-    bio: {
-      type: String,
-      default: "",
-    },
     profilePicture: {
       type: String,
       default: "",

@@ -93,21 +93,6 @@ const options: swaggerJsdoc.Options = {
               description: "User password (hashed)",
               example: "password123",
             },
-            firstName: {
-              type: "string",
-              description: "User's first name",
-              example: "John",
-            },
-            lastName: {
-              type: "string",
-              description: "User's last name",
-              example: "Doe",
-            },
-            bio: {
-              type: "string",
-              description: "User's biography/description",
-              example: "I love coding and photography",
-            },
             profilePicture: {
               type: "string",
               description: "URL to user's profile picture",
@@ -194,7 +179,8 @@ const options: swaggerJsdoc.Options = {
             },
             sender: {
               type: "object",
-              description: "User object with limited fields (ID, username, and profile picture)",
+              description:
+                "User object with limited fields (ID, username, and profile picture)",
               properties: {
                 _id: {
                   type: "string",
@@ -248,7 +234,8 @@ const options: swaggerJsdoc.Options = {
             },
             sender: {
               type: "object",
-              description: "User object with limited fields (ID, username, and profile picture)",
+              description:
+                "User object with limited fields (ID, username, and profile picture)",
               properties: {
                 _id: {
                   type: "string",
@@ -751,7 +738,9 @@ const manualPaths = {
             "application/json": {
               schema: {
                 type: "array",
-                items: { $ref: "#/components/schemas/CommentWithPopulatedSender" },
+                items: {
+                  $ref: "#/components/schemas/CommentWithPopulatedSender",
+                },
               },
             },
           },
@@ -807,7 +796,9 @@ const manualPaths = {
           description: "Comment details",
           content: {
             "application/json": {
-              schema: { $ref: "#/components/schemas/CommentWithPopulatedSender" },
+              schema: {
+                $ref: "#/components/schemas/CommentWithPopulatedSender",
+              },
             },
           },
         },
