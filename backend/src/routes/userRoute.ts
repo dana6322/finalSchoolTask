@@ -122,12 +122,6 @@ router.get("/", userController.getAll.bind(userController));
  *                   type: string
  *                 userName:
  *                   type: string
- *                 firstName:
- *                   type: string
- *                 lastName:
- *                   type: string
- *                 bio:
- *                   type: string
  *                 profilePicture:
  *                   type: string
  *                 createdAt:
@@ -155,7 +149,11 @@ router.get("/", userController.getAll.bind(userController));
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/me", authenticate, userController.getCurrentUser.bind(userController));
+router.get(
+  "/me",
+  authenticate,
+  userController.getCurrentUser.bind(userController),
+);
 
 /**
  * @swagger
@@ -316,7 +314,11 @@ router.get("/me", authenticate, userController.getCurrentUser.bind(userControlle
  */
 router.get("/:id", userController.getById.bind(userController));
 
-router.get("/me", authenticate, userController.getCurrentUser.bind(userController));
+router.get(
+  "/me",
+  authenticate,
+  userController.getCurrentUser.bind(userController),
+);
 
 router.post("/", authenticate, userController.create.bind(userController));
 

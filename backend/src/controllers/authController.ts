@@ -217,7 +217,7 @@ const googleLogin = async (req: Request, res: Response) => {
       return sendError(401, "Invalid Google token", res);
     }
 
-    const { email, given_name, family_name, picture, sub } = payload;
+    const { email, picture, sub } = payload;
 
     // Find existing user or create a new one
     let user = await User.findOne({ email });
@@ -226,8 +226,6 @@ const googleLogin = async (req: Request, res: Response) => {
       user = await User.create({
         email,
         userName: email.split("@")[0] + "_" + sub!.slice(-4),
-        firstName: given_name || "",
-        lastName: family_name || "",
         profilePicture: picture || "",
         password: "",
       });
