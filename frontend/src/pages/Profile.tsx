@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import type { Post, User } from "../types";
+import useInfiniteScroll from "../hooks/useInfiniteScroll";
+import type { Post, User, PaginatedPosts } from "../types";
 import api from "../services/api";
 import PostCard from "../components/PostCard";
 import ImageUpload from "../components/ImageUpload";
@@ -29,6 +30,9 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(false);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+  const [postsPage, setPostsPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
 
   const handleProfileFileSelect = (file: File) => {
     setProfilePictureFile(file);
@@ -69,60 +73,52 @@ export default function Profile() {
     }
   }, [profileUser]);
 
-  // Fetch this user's posts
-  useEffect(() => {
-    if (!profileUser?._id) return;
-    const fetchPosts = async () => {
-      setLoadingPosts(true);
+  const PROFILE_POSTS_LIMIT = 10;
+
+  const fetchProfilePosts = useCallback(
+    async (pageNum: number, append = false) => {
+      if (!profileUser?._id) return;
+      if (append) {
+        setLoadingMorePosts(true);
+      } else {
+        setLoadingPosts(true);
+      }
       try {
-        const response = await api.get("/post");
-        const targetId = profileUser._id;
-        const filteredPosts = response.data.filter(
-          (post: Post) =>
-            (typeof post.sender === "object" &&
-              post.sender !== null &&
-              post.sender._id === targetId) ||
-            post.sender === targetId,
+        const response = await api.get<PaginatedPosts>(
+          `/post?sender=${profileUser._id}&page=${pageNum}&limit=${PROFILE_POSTS_LIMIT}`,
         );
-        const sortedPosts = filteredPosts.sort((a: Post, b: Post) => {
-          const dateA = new Date(a.createdAt || 0).getTime();
-          const dateB = new Date(b.createdAt || 0).getTime();
-          return dateB - dateA;
-        });
-        setUserPosts(sortedPosts);
+        const { posts: newPosts, pages } = response.data;
+
+        if (append) {
+          setUserPosts((prev) => [...prev, ...newPosts]);
+        } else {
+          setUserPosts(newPosts);
+        }
+        setPostsPage(pageNum);
+        setHasMorePosts(pageNum < pages);
       } catch (err) {
         console.error("Failed to fetch user posts:", err);
       } finally {
         setLoadingPosts(false);
+        setLoadingMorePosts(false);
       }
-    };
-    fetchPosts();
-  }, [profileUser?._id]);
+    },
+    [profileUser?._id],
+  );
+
+  // Fetch this user's posts
+  useEffect(() => {
+    if (!profileUser?._id) return;
+    fetchProfilePosts(1);
+  }, [profileUser?._id, fetchProfilePosts]);
+
+  // Infinite scroll for profile posts
+  const loadMorePostsRef = useInfiniteScroll(
+    postsPage, hasMorePosts, loadingMorePosts, fetchProfilePosts,
+  );
 
   const fetchUserPosts = async () => {
-    if (!profileUser?._id) return;
-    setLoadingPosts(true);
-    try {
-      const response = await api.get("/post");
-      const targetId = profileUser._id;
-      const filteredPosts = response.data.filter(
-        (post: Post) =>
-          (typeof post.sender === "object" &&
-            post.sender !== null &&
-            post.sender._id === targetId) ||
-          post.sender === targetId,
-      );
-      const sortedPosts = filteredPosts.sort((a: Post, b: Post) => {
-        const dateA = new Date(a.createdAt || 0).getTime();
-        const dateB = new Date(b.createdAt || 0).getTime();
-        return dateB - dateA;
-      });
-      setUserPosts(sortedPosts);
-    } catch (err) {
-      console.error("Failed to fetch user posts:", err);
-    } finally {
-      setLoadingPosts(false);
-    }
+    await fetchProfilePosts(1);
   };
 
   if (!token) {
@@ -203,13 +199,20 @@ export default function Profile() {
           {isOwnProfile ? "My Profile" : profileUser.userName || "Profile"}
         </h5>
         {isOwnProfile && !isEditing && (
-          <div className="topbar-actions">
+          <div className="topbar-actions d-flex gap-2">
             <button
               className="btn btn-outline-primary btn-sm"
               onClick={() => setIsEditing(true)}
               style={{ borderRadius: "20px", padding: "6px 18px" }}
             >
               <i className="fa-solid fa-pen"></i> Edit Profile
+            </button>
+            <button
+              className="btn btn-outline-danger btn-sm"
+              onClick={handleLogout}
+              style={{ borderRadius: "20px", padding: "6px 18px" }}
+            >
+              <i className="fa-solid fa-right-from-bracket"></i> Logout
             </button>
           </div>
         )}
@@ -357,21 +360,20 @@ export default function Profile() {
                 onPostDeleted={() => fetchUserPosts()}
               />
             ))}
+            {hasMorePosts && (
+              <div ref={loadMorePostsRef} className="text-center py-4">
+                <div
+                  className="spinner-border spinner-border-sm"
+                  role="status"
+                  style={{ color: "var(--primary)" }}
+                >
+                  <span className="visually-hidden">Loading more...</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Logout (own profile only) */}
-        {isOwnProfile && (
-          <div className="text-center mt-4 mb-4">
-            <button
-              className="btn btn-outline-danger btn-sm"
-              onClick={handleLogout}
-              style={{ borderRadius: "20px", padding: "6px 24px" }}
-            >
-              <i className="fa-solid fa-right-from-bracket"></i> Logout
-            </button>
-          </div>
-        )}
       </div>
     </>
   );

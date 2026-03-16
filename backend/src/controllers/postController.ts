@@ -8,14 +8,35 @@ class PostsController extends baseController {
     super(postModel);
   }
 
-  // Override getAll to populate sender with username and id
+  // Override getAll to populate sender and support pagination
   async getAll(req: AuthRequest, res: Response) {
     try {
-      let query = this.model
-        .find(req.query || {})
+      // Extract pagination params
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const limit = Math.max(
+        1,
+        Math.min(100, parseInt(req.query.limit as string) || 10),
+      );
+      const skip = (page - 1) * limit;
+
+      // Build filter from remaining query params (exclude pagination keys)
+      const { page: _p, limit: _l, ...filter } = req.query;
+
+      const total = await this.model.countDocuments(filter);
+      const posts = await this.model
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
         .populate("sender", "userName profilePicture _id");
-      const data = await query;
-      return res.json(data);
+
+      return res.json({
+        posts,
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Error retrieving data" });
@@ -102,7 +123,10 @@ class PostsController extends baseController {
   }
 
   // Toggle like on a post (like if not liked, unlike if already liked)
-  async toggleLike(req: AuthRequest, res: Response): Promise<Response | undefined> {
+  async toggleLike(
+    req: AuthRequest,
+    res: Response,
+  ): Promise<Response | undefined> {
     const postId = req.params.id;
     try {
       const post = await this.model.findById(postId);
@@ -116,14 +140,12 @@ class PostsController extends baseController {
       }
 
       const alreadyLiked = post.likes.some(
-        (id: any) => id.toString() === userId
+        (id: any) => id.toString() === userId,
       );
 
       if (alreadyLiked) {
         // Unlike
-        post.likes = post.likes.filter(
-          (id: any) => id.toString() !== userId
-        );
+        post.likes = post.likes.filter((id: any) => id.toString() !== userId);
       } else {
         // Like
         post.likes.push(userId);

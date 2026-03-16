@@ -91,15 +91,14 @@ describe("Likes Test Suite", () => {
   });
 
   test("Like without auth returns 401", async () => {
-    const response = await request(app)
-      .post("/post/" + postId + "/like");
+    const response = await request(app).post("/post/" + postId + "/like");
     expect(response.status).toBe(401);
   });
 
   test("Likes persist when fetching all posts", async () => {
     const response = await request(app).get("/post");
     expect(response.status).toBe(200);
-    const likedPost = response.body.find((p: any) => p._id === postId);
+    const likedPost = response.body.posts.find((p: any) => p._id === postId);
     expect(likedPost).toBeDefined();
     expect(likedPost.likes).toBeDefined();
     expect(Array.isArray(likedPost.likes)).toBe(true);

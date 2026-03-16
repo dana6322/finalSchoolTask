@@ -15,6 +15,14 @@ export interface Post {
   updatedAt?: string;
 }
 
+export interface PaginatedPosts {
+  posts: Post[];
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
 export interface Comment {
   _id: string;
   message: string;
