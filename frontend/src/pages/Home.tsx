@@ -1,61 +1,73 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import type { Post } from "../types";
+import useInfiniteScroll from "../hooks/useInfiniteScroll";
+import type { Post, PaginatedPosts } from "../types";
 import api from "../services/api";
 import PostCard from "../components/PostCard";
 import CreatePostModal from "../components/CreatePostModal";
 
+const POSTS_PER_PAGE = 10;
+
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const { user, token } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    fetchPosts();
-  }, [token, navigate]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async (pageNum: number, append = false) => {
     try {
-      setIsLoading(true);
-      const response = await api.get("/post");
-      const sortedPosts = [...response.data].sort((a, b) => {
-        const createdAtA = new Date(a.createdAt || 0).getTime();
-        const createdAtB = new Date(b.createdAt || 0).getTime();
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+      }
+      const response = await api.get<PaginatedPosts>(
+        `/post?page=${pageNum}&limit=${POSTS_PER_PAGE}`,
+      );
+      const { posts: newPosts, pages } = response.data;
 
-        if (createdAtA !== createdAtB) {
-          return createdAtB - createdAtA;
-        }
-
-        const updatedAtA = new Date(a.updatedAt || 0).getTime();
-        const updatedAtB = new Date(b.updatedAt || 0).getTime();
-        return updatedAtB - updatedAtA;
-      });
-
-      setPosts(sortedPosts);
+      if (append) {
+        setPosts((prev) => [...prev, ...newPosts]);
+      } else {
+        setPosts(newPosts);
+      }
+      setPage(pageNum);
+      setHasMore(pageNum < pages);
       setError("");
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || "Failed to load posts");
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+    fetchPosts(1);
+  }, [token, navigate, fetchPosts]);
+
+  // Infinite scroll
+  const loadMoreRef = useInfiniteScroll(page, hasMore, isLoadingMore, fetchPosts);
 
   const handlePostCreated = async () => {
     setShowCreateModal(false);
-    await fetchPosts();
+    // Reload from first page so new post appears at top
+    await fetchPosts(1);
   };
 
   const handlePostDeleted = async () => {
-    await fetchPosts();
+    await fetchPosts(1);
   };
 
   if (!user) {
@@ -111,14 +123,27 @@ export default function Home() {
             No posts yet. Be the first to create one!
           </div>
         ) : (
-          posts.map((post) => (
-            <PostCard
-              key={post._id}
-              post={post}
-              currentUserId={user._id}
-              onPostDeleted={handlePostDeleted}
-            />
-          ))
+          <>
+            {posts.map((post) => (
+              <PostCard
+                key={post._id}
+                post={post}
+                currentUserId={user._id}
+                onPostDeleted={handlePostDeleted}
+              />
+            ))}
+            {hasMore && (
+              <div ref={loadMoreRef} className="text-center py-4">
+                <div
+                  className="spinner-border spinner-border-sm"
+                  role="status"
+                  style={{ color: "var(--primary)" }}
+                >
+                  <span className="visually-hidden">Loading more...</span>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         <CreatePostModal

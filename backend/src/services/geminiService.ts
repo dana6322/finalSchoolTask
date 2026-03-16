@@ -86,19 +86,27 @@ export async function smartSearch(
   relevantPostIds: string[];
 }> {
   // Build text context and collect images
+  // Use numeric indices instead of real IDs so Gemini never sees sensitive data
   const postsContext: string[] = [];
   const imageParts: Array<{ inlineData: { data: string; mimeType: string } }> =
     [];
   const imageLabels: string[] = [];
+  const indexToId: Map<number, string> = new Map();
 
-  for (const p of posts) {
+  for (let i = 0; i < posts.length; i++) {
+    const p = posts[i];
+    const postNum = i + 1;
+    indexToId.set(postNum, p._id.toString());
+
     const senderName =
-      typeof p.sender === "object" ? p.sender.userName || "Unknown" : "Unknown";
+      typeof p.sender === "object" && p.sender !== null
+        ? p.sender.userName || "Unknown"
+        : "Unknown";
     const relatedComments = comments
       .filter((c) => c.postId.toString() === p._id.toString())
       .map((c) => {
         const cSender =
-          typeof c.sender === "object"
+          typeof c.sender === "object" && c.sender !== null
             ? c.sender.userName || "Unknown"
             : "Unknown";
         return `  - Comment by ${cSender}: "${c.message}"`;
@@ -106,7 +114,7 @@ export async function smartSearch(
       .join("\n");
 
     postsContext.push(
-      `Post [ID: ${p._id}] by ${senderName} (${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "unknown date"}):\n"${p.text}"\n${relatedComments ? "Comments:\n" + relatedComments : "No comments"}`,
+      `Post #${postNum} by ${senderName} (${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "unknown date"}):\n"${p.text}"\n${relatedComments ? "Comments:\n" + relatedComments : "No comments"}`,
     );
 
     // Try to load the post image
@@ -117,7 +125,7 @@ export async function smartSearch(
           inlineData: { data: imageData.base64, mimeType: imageData.mimeType },
         });
         imageLabels.push(
-          `[Image above belongs to Post ID: ${p._id}, text: "${p.text.substring(0, 50)}"]`,
+          `[Image above belongs to Post #${postNum}, text: "${p.text.substring(0, 50)}"]`,
         );
       }
     }
@@ -142,19 +150,19 @@ Instructions:
 3. Provide a helpful, concise summary answering the user's query based on the application content.
 4. If the search is about a topic, summarize what the community has discussed about it.
 5. If no relevant content is found, say so politely.
-6. Return your response in the following JSON format ONLY (no markdown, no code fences):
+6. IMPORTANT: In your "answer" text, do NOT include any post numbers, internal IDs, or technical details. Write a natural, user-friendly summary that only references posts by their content or author name.
+7. Return your response in the following JSON format ONLY (no markdown, no code fences):
 {
-  "answer": "Your helpful summary here...",
-  "relevantPostIds": ["id1", "id2"]
+  "answer": "Your helpful summary here (no post numbers or IDs)...",
+  "relevantPostNumbers": [1, 2]
 }
 
-The "relevantPostIds" array should contain the IDs of posts that are relevant to the search.
+The "relevantPostNumbers" array should contain the post numbers (e.g. 1, 2, 3) of the relevant posts.
 Return ONLY valid JSON, nothing else.`;
 
   // Build multipart request: text prompt, then each image with its label
   const parts: Array<
-    | { text: string }
-    | { inlineData: { data: string; mimeType: string } }
+    { text: string } | { inlineData: { data: string; mimeType: string } }
   > = [{ text: textPrompt }];
 
   for (let i = 0; i < imageParts.length; i++) {
@@ -171,9 +179,21 @@ Return ONLY valid JSON, nothing else.`;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
+      // Map post numbers back to real MongoDB IDs
+      const relevantPostIds: string[] = (
+        parsed.relevantPostNumbers ||
+        parsed.relevantPostIds ||
+        []
+      )
+        .map((num: number | string) => {
+          const n = typeof num === "string" ? parseInt(num, 10) : num;
+          return indexToId.get(n);
+        })
+        .filter(Boolean) as string[];
+
       return {
         answer: parsed.answer || "No relevant results found.",
-        relevantPostIds: parsed.relevantPostIds || [],
+        relevantPostIds,
       };
     }
   } catch {

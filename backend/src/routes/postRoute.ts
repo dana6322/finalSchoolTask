@@ -9,32 +9,50 @@ const router = express.Router();
  * /post:
  *   get:
  *     tags: [Posts]
- *     summary: Get all posts
- *     description: Retrieve a list of all posts in the database
+ *     summary: Get all posts (paginated)
+ *     description: Retrieve a paginated list of posts, sorted by newest first. Supports filtering by sender.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number (1-based)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of posts per page (max 100)
+ *       - in: query
+ *         name: sender
+ *         schema:
+ *           type: string
+ *         description: Filter posts by sender user ID
  *     responses:
  *       200:
- *         description: List of posts retrieved successfully
+ *         description: Paginated list of posts retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/PostWithPopulatedSender'
- *             example:
- *               - _id: "507f1f77bcf86cd799439011"
- *                 text: "This is my first post!"
- *                 img: "https://example.com/image.jpg"
- *                 sender:
- *                   _id: "507f1f77bcf86cd799439012"
- *                   userName: "johndoe"
- *                   profilePicture: "https://example.com/johndoe.jpg"
- *               - _id: "507f1f77bcf86cd799439013"
- *                 text: "Another amazing post"
- *                 img: "https://example.com/image2.jpg"
- *                 sender:
- *                   _id: "507f1f77bcf86cd799439014"
- *                   userName: "janedoe"
- *                   profilePicture: "https://example.com/janedoe.jpg"
+ *               type: object
+ *               properties:
+ *                 posts:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PostWithPopulatedSender'
+ *                 page:
+ *                   type: integer
+ *                   example: 1
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
+ *                 total:
+ *                   type: integer
+ *                   example: 25
+ *                 pages:
+ *                   type: integer
+ *                   example: 3
  *       500:
  *         description: Internal server error
  *         content:
@@ -373,6 +391,10 @@ router.put("/:id", authenticate, postController.update.bind(postController));
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post("/:id/like", authenticate, postController.toggleLike.bind(postController));
+router.post(
+  "/:id/like",
+  authenticate,
+  postController.toggleLike.bind(postController),
+);
 
 export default router;

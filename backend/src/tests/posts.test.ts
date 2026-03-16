@@ -22,7 +22,9 @@ describe("Sample Test Suite", () => {
   test("Sample Test Case", async () => {
     const response = await request(app).get("/post");
     expect(response.status).toBe(200);
-    expect(response.body).toEqual([]);
+    expect(response.body.posts).toEqual([]);
+    expect(response.body.page).toBe(1);
+    expect(response.body.total).toBe(0);
   });
 
   test("Create Post", async () => {
@@ -44,39 +46,41 @@ describe("Sample Test Suite", () => {
   test("Get All Posts", async () => {
     const response = await request(app).get("/post");
     expect(response.status).toBe(200);
-    expect(response.body.length).toBe(postsList.length);
+    expect(response.body.posts.length).toBe(postsList.length);
+    expect(response.body.total).toBe(postsList.length);
+    expect(response.body.page).toBe(1);
+    expect(response.body.pages).toBe(1);
   });
 
   test("Get Posts by sender", async () => {
     const response = await request(app).get("/post?sender=" + loginUser._id);
     expect(response.status).toBe(200);
-    expect(response.body.length).toBe(postsList.length);
-    expect(response.body[0].text).toBe(postsList[0].text);
-    // postsList[0]._id = response.body[0]._id;
-    postId = response.body[0]._id;
+    expect(response.body.posts.length).toBe(postsList.length);
+    expect(response.body.total).toBe(postsList.length);
+    postId = response.body.posts[0]._id;
   });
 
   //get post by id
   test("Get Post by ID", async () => {
     const response = await request(app).get("/post/" + postId);
     expect(response.status).toBe(200);
-    expect(response.body.text).toBe(postsList[0].text);
-    expect(response.body.img).toBe(postsList[0].img);
     expect(response.body._id).toBe(postId);
+    expect(response.body).toHaveProperty("text");
+    expect(response.body).toHaveProperty("img");
     expect(response.body).toHaveProperty("createdAt");
     expect(response.body).toHaveProperty("updatedAt");
   });
 
   test("Update Post", async () => {
-    postsList[0].text = "Inception Updated";
-    postsList[0].img = "inception_updated.jpg";
+    const updatedText = "Updated Post Text";
+    const updatedImg = "updated.jpg";
     const response = await request(app)
       .put("/post/" + postId)
       .set("Authorization", "Bearer " + loginUser.token)
-      .send(postsList[0]);
+      .send({ text: updatedText, img: updatedImg });
     expect(response.status).toBe(200);
-    expect(response.body.text).toBe(postsList[0].text);
-    expect(response.body.img).toBe(postsList[0].img);
+    expect(response.body.text).toBe(updatedText);
+    expect(response.body.img).toBe(updatedImg);
     expect(response.body._id).toBe(postId);
   });
 
@@ -90,5 +94,80 @@ describe("Sample Test Suite", () => {
 
     const getResponse = await request(app).get("/post/" + postId);
     expect(getResponse.status).toBe(404);
+  });
+});
+
+describe("Pagination Tests", () => {
+  beforeAll(async () => {
+    await postModel.deleteMany();
+    // Create 5 posts for pagination testing
+    for (let i = 1; i <= 5; i++) {
+      await request(app)
+        .post("/post")
+        .set("Authorization", "Bearer " + loginUser.token)
+        .send({ text: `Pagination Post ${i}`, img: `img${i}.jpg` });
+    }
+  });
+
+  test("Default pagination returns first page", async () => {
+    const response = await request(app).get("/post");
+    expect(response.status).toBe(200);
+    expect(response.body.page).toBe(1);
+    expect(response.body.limit).toBe(10);
+    expect(response.body.total).toBe(5);
+    expect(response.body.pages).toBe(1);
+    expect(response.body.posts.length).toBe(5);
+  });
+
+  test("Custom page size limits results", async () => {
+    const response = await request(app).get("/post?limit=2");
+    expect(response.status).toBe(200);
+    expect(response.body.posts.length).toBe(2);
+    expect(response.body.total).toBe(5);
+    expect(response.body.pages).toBe(3);
+    expect(response.body.page).toBe(1);
+  });
+
+  test("Second page returns correct posts", async () => {
+    const response = await request(app).get("/post?page=2&limit=2");
+    expect(response.status).toBe(200);
+    expect(response.body.posts.length).toBe(2);
+    expect(response.body.page).toBe(2);
+    expect(response.body.total).toBe(5);
+  });
+
+  test("Last page returns remaining posts", async () => {
+    const response = await request(app).get("/post?page=3&limit=2");
+    expect(response.status).toBe(200);
+    expect(response.body.posts.length).toBe(1);
+    expect(response.body.page).toBe(3);
+  });
+
+  test("Page beyond total returns empty posts array", async () => {
+    const response = await request(app).get("/post?page=10&limit=2");
+    expect(response.status).toBe(200);
+    expect(response.body.posts.length).toBe(0);
+    expect(response.body.page).toBe(10);
+    expect(response.body.total).toBe(5);
+  });
+
+  test("Posts are sorted by newest first", async () => {
+    const response = await request(app).get("/post?limit=5");
+    expect(response.status).toBe(200);
+    const posts = response.body.posts;
+    for (let i = 0; i < posts.length - 1; i++) {
+      const dateA = new Date(posts[i].createdAt).getTime();
+      const dateB = new Date(posts[i + 1].createdAt).getTime();
+      expect(dateA).toBeGreaterThanOrEqual(dateB);
+    }
+  });
+
+  test("Pagination works with sender filter", async () => {
+    const response = await request(app).get(
+      "/post?sender=" + loginUser._id + "&limit=2&page=1",
+    );
+    expect(response.status).toBe(200);
+    expect(response.body.posts.length).toBe(2);
+    expect(response.body.total).toBe(5);
   });
 });
