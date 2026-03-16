@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import User from "../models/userModel";
 import jwt from "jsonwebtoken";
 import { AuthRequest } from "../middleware/authMiddleware";
+import { OAuth2Client } from "google-auth-library";
 
 const sendError = (code: number, message: string, res: Response) => {
   res.status(code).json({ message });
@@ -63,6 +64,9 @@ const login = async (req: Request, res: Response) => {
     const user = await User.findOne({ email: email });
     if (!user) {
       return sendError(401, "Invalid email or password 1", res);
+    }
+    if (!user.password) {
+      return sendError(401, "Please use Google login for this account", res);
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -166,6 +170,14 @@ const changePassword = async (req: AuthRequest, res: Response) => {
       return sendError(404, "User not found", res);
     }
 
+    if (!user.password) {
+      return sendError(
+        400,
+        "Cannot change password for Google-authenticated accounts",
+        res,
+      );
+    }
+
     // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
@@ -185,10 +197,58 @@ const changePassword = async (req: AuthRequest, res: Response) => {
   }
 };
 
+const googleLogin = async (req: Request, res: Response) => {
+  const { credential } = req.body;
+  if (!credential) {
+    return sendError(400, "Google credential is required", res);
+  }
+
+  try {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const client = new OAuth2Client(clientId);
+
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: clientId,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return sendError(401, "Invalid Google token", res);
+    }
+
+    const { email, given_name, family_name, picture, sub } = payload;
+
+    // Find existing user or create a new one
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = await User.create({
+        email,
+        userName: email.split("@")[0] + "_" + sub!.slice(-4),
+        firstName: given_name || "",
+        lastName: family_name || "",
+        profilePicture: picture || "",
+        password: "",
+      });
+    }
+
+    const tokens = generateToken(user._id.toString());
+    user.refreshTokens.push(tokens.refreshToken);
+    await user.save();
+
+    res.status(200).json({ ...tokens, _id: user._id.toString() });
+  } catch (err) {
+    console.error("Google login error:", err);
+    return sendError(401, "Google authentication failed", res);
+  }
+};
+
 export default {
   register,
   login,
   refreshToken,
   logout,
   changePassword,
+  googleLogin,
 };
