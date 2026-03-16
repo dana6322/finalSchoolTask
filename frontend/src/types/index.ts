@@ -38,7 +38,12 @@ export interface AuthContextType {
   token: string | null;
   refreshToken: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, userName?: string) => Promise<void>;
+  googleLogin: (credential: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    userName?: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isLoading: boolean;

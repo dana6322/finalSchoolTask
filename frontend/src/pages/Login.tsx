@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState("");
-  const { login, isLoading, error } = useAuth();
+  const { login, googleLogin, isLoading, error } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,6 +25,24 @@ export default function Login() {
     } catch {
       setLocalError(error || "Login failed");
     }
+  };
+
+  const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
+    setLocalError("");
+    if (!credentialResponse.credential) {
+      setLocalError("Google login failed - no credential received");
+      return;
+    }
+    try {
+      await googleLogin(credentialResponse.credential);
+      navigate("/");
+    } catch {
+      setLocalError(error || "Google login failed");
+    }
+  };
+
+  const handleGoogleLoginError = () => {
+    setLocalError("Google login failed");
   };
 
   return (
@@ -93,6 +112,21 @@ export default function Login() {
               {isLoading ? "Logging in..." : "Sign In"}
             </button>
           </form>
+
+          <div className="d-flex align-items-center my-3">
+            <hr className="flex-grow-1" />
+            <span className="mx-3 text-muted" style={{ fontSize: "0.85rem" }}>
+              or
+            </span>
+            <hr className="flex-grow-1" />
+          </div>
+
+          <div className="d-flex justify-content-center mb-3">
+            <GoogleLogin
+              onSuccess={handleGoogleLogin}
+              onError={handleGoogleLoginError}
+            />
+          </div>
 
           <p className="text-center text-muted mb-0">
             Don't have an account? <Link to="/register">Register here</Link>

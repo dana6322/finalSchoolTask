@@ -324,10 +324,48 @@ router.post("/logout", authController.logout);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post(
-  "/changePassword",
-  authenticate,
-  authController.changePassword,
-);
+router.post("/changePassword", authenticate, authController.changePassword);
+
+/**
+ * @swagger
+ * /auth/google:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Login with Google
+ *     description: Authenticate using a Google ID token. If the user doesn't exist, a new account will be created automatically.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - credential
+ *             properties:
+ *               credential:
+ *                 type: string
+ *                 description: Google ID token from Google Sign-In
+ *     responses:
+ *       200:
+ *         description: Successfully authenticated with Google
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                 refreshToken:
+ *                   type: string
+ *                 _id:
+ *                   type: string
+ *       400:
+ *         description: Missing Google credential
+ *       401:
+ *         description: Invalid Google token or authentication failed
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/google", authController.googleLogin);
 
 export default router;

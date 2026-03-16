@@ -9,7 +9,8 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: false, //since we allow google login and they dont have a password
+      default: "",
     },
     userName: {
       type: String,
