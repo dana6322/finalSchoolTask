@@ -10,9 +10,6 @@ import multerRouter from "./routes/multerRoute";
 import aiRouter from "./routes/aiRoute";
 import { swaggerUi, swaggerSpec } from "./swagger";
 
-import dotenv from "dotenv";
-dotenv.config({ path: ".env.dev" });
-
 const app = express();
 app.use(cors());
 app.use(express.json());
