@@ -4,6 +4,10 @@ import postModel from "../models/postModel";
 import commentModel from "../models/commentModel";
 import { smartSearch } from "../services/geminiService";
 
+// Simple per-user cooldown to avoid hitting Gemini rate limits
+const lastSearchTime = new Map<string, number>();
+const COOLDOWN_MS = 15_000; // 15 seconds between searches per user
+
 class AIController {
   /**
    * POST /ai/search
@@ -15,6 +19,17 @@ class AIController {
     if (!query || typeof query !== "string" || query.trim().length === 0) {
       return res.status(400).json({ message: "Search query is required" });
     }
+
+    const userId = req.user?._id?.toString() || "anonymous";
+    const now = Date.now();
+    const lastTime = lastSearchTime.get(userId) || 0;
+    if (now - lastTime < COOLDOWN_MS) {
+      const waitSec = Math.ceil((COOLDOWN_MS - (now - lastTime)) / 1000);
+      return res.status(429).json({
+        message: `Please wait ${waitSec} seconds before searching again.`,
+      });
+    }
+    lastSearchTime.set(userId, now);
 
     try {
       // Fetch all posts and comments with populated senders

@@ -117,8 +117,8 @@ export async function smartSearch(
       `Post #${postNum} by ${senderName} (${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "unknown date"}):\n"${p.text}"\n${relatedComments ? "Comments:\n" + relatedComments : "No comments"}`,
     );
 
-    // Try to load the post image
-    if (p.img) {
+    // Try to load the post image (limit to 5 images to avoid rate limits)
+    if (p.img && imageParts.length < 5) {
       const imageData = getImageAsBase64(p.img);
       if (imageData) {
         imageParts.push({
@@ -128,6 +128,8 @@ export async function smartSearch(
           `[Image above belongs to Post #${postNum}, text: "${p.text.substring(0, 50)}"]`,
         );
       }
+    } else if (p.img) {
+      postsContext[postsContext.length - 1] += "\n(This post has an image that was not included due to size limits)";
     }
   }
 
