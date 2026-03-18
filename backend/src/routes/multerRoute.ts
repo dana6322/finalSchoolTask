@@ -19,7 +19,9 @@ const upload = multer({ storage: storage });
 
 router.post("/", upload.single("file"), function (req: any, res: any) {
   const base =
-    "http://" + process.env.DOMAIN_BASE + ":" + process.env.PORT + "/";
+    process.env.NODE_ENV === "production"
+      ? process.env.DOMAIN_BASE + "/"
+      : "http://" + process.env.DOMAIN_BASE + ":" + process.env.PORT + "/";
   const parts = req.file.path.split("/");
   const url = base + "uploads/" + parts[parts.length - 1];
   console.log("router.post(/file: " + url);
