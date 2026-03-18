@@ -10,5 +10,5 @@
     "types": ["node"],
     "lib": ["es2015"]
   },
-  "exclude": ["./src/tests", "./src/swagger.ts"]
+  "exclude": ["./src/tests"]
 }
