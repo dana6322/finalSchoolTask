@@ -12,7 +12,7 @@ function getModel(): GenerativeModel {
     }
     console.log("Initializing Gemini with key ending in:", apiKey.slice(-6));
     const genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+    model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   }
   return model;
 }
