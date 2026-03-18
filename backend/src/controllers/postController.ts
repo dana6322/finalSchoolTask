@@ -1,7 +1,9 @@
 import postModel from "../models/postModel";
+import commentModel from "../models/commentModel";
 import { Response } from "express";
 import baseController from "./baseController";
 import { AuthRequest } from "../middleware/authMiddleware";
+import mongoose from "mongoose";
 
 class PostsController extends baseController {
   constructor() {
@@ -23,12 +25,48 @@ class PostsController extends baseController {
       const { page: _p, limit: _l, ...filter } = req.query;
 
       const total = await this.model.countDocuments(filter);
-      const posts = await this.model
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate("sender", "userName profilePicture _id");
+      const posts = await this.model.aggregate([
+        { $match: filter.sender ? { sender: new mongoose.Types.ObjectId(filter.sender as string) } : {} },
+        { $sort: { createdAt: -1 as const } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: "comments",
+            localField: "_id",
+            foreignField: "postId",
+            as: "_comments",
+          },
+        },
+        {
+          $addFields: {
+            commentsCount: { $size: "$_comments" },
+          },
+        },
+        { $project: { _comments: 0 } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "sender",
+            foreignField: "_id",
+            as: "sender",
+          },
+        },
+        { $unwind: "$sender" },
+        {
+          $project: {
+            text: 1,
+            img: 1,
+            likes: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            commentsCount: 1,
+            "sender._id": 1,
+            "sender.userName": 1,
+            "sender.profilePicture": 1,
+          },
+        },
+      ]);
 
       return res.json({
         posts,
@@ -43,17 +81,49 @@ class PostsController extends baseController {
     }
   }
 
-  // Override getById to populate sender with username and id
+  // Override getById to populate sender with username and id + commentsCount
   async getById(req: AuthRequest, res: Response) {
     const id = req.params.id;
     try {
-      const item = await this.model
-        .findById(id)
-        .populate("sender", "userName profilePicture _id");
-      if (!item) {
+      const results = await this.model.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(id) } },
+        {
+          $lookup: {
+            from: "comments",
+            localField: "_id",
+            foreignField: "postId",
+            as: "_comments",
+          },
+        },
+        { $addFields: { commentsCount: { $size: "$_comments" } } },
+        { $project: { _comments: 0 } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "sender",
+            foreignField: "_id",
+            as: "sender",
+          },
+        },
+        { $unwind: "$sender" },
+        {
+          $project: {
+            text: 1,
+            img: 1,
+            likes: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            commentsCount: 1,
+            "sender._id": 1,
+            "sender.userName": 1,
+            "sender.profilePicture": 1,
+          },
+        },
+      ]);
+      if (!results.length) {
         return res.status(404).json({ message: "Item not found" });
       }
-      return res.json(item);
+      return res.json(results[0]);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Error retrieving item" });
@@ -71,8 +141,9 @@ class PostsController extends baseController {
       // Populate sender before returning
       const populatedData = await this.model
         .findById(newData._id)
-        .populate("sender", "userName profilePicture _id");
-      res.status(201).json(populatedData);
+        .populate("sender", "userName profilePicture _id")
+        .lean();
+      res.status(201).json({ ...populatedData, commentsCount: 0 });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "Error creating item" });
@@ -153,11 +224,13 @@ class PostsController extends baseController {
 
       await post.save();
 
+      const count = await commentModel.countDocuments({ postId });
       const populatedPost = await this.model
         .findById(postId)
-        .populate("sender", "userName profilePicture _id");
+        .populate("sender", "userName profilePicture _id")
+        .lean();
 
-      return res.json(populatedPost);
+      return res.json({ ...populatedPost, commentsCount: count });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Error toggling like" });

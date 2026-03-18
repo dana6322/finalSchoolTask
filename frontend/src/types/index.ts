@@ -11,6 +11,7 @@ export interface Post {
   img: string;
   sender: string | User;
   likes: string[];
+  commentsCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -18,7 +18,7 @@ export default function PostCard({
 }: PostCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [commentCount, setCommentCount] = useState(0);
+  const [commentCount, setCommentCount] = useState(post.commentsCount ?? 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -40,18 +40,6 @@ export default function PostCard({
   const sender = post.sender ? (post.sender as User) : null;
   const senderId =
     typeof post.sender === "string" ? post.sender : sender?._id || null;
-
-  useEffect(() => {
-    const fetchCommentCount = async () => {
-      try {
-        const res = await api.get(`/comment?postId=${post._id}`);
-        setCommentCount(Array.isArray(res.data) ? res.data.length : 0);
-      } catch {
-        setCommentCount(0);
-      }
-    };
-    fetchCommentCount();
-  }, [post._id]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
