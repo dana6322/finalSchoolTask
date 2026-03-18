@@ -40,6 +40,7 @@ describe("Sample Test Suite", () => {
       expect(response.body).toHaveProperty("updatedAt");
       expect(response.body.likes).toBeDefined();
       expect(response.body.likes).toEqual([]);
+      expect(response.body.commentsCount).toBe(0);
     }
   });
 
@@ -50,6 +51,11 @@ describe("Sample Test Suite", () => {
     expect(response.body.total).toBe(postsList.length);
     expect(response.body.page).toBe(1);
     expect(response.body.pages).toBe(1);
+    // Each post should have commentsCount
+    for (const post of response.body.posts) {
+      expect(post).toHaveProperty("commentsCount");
+      expect(post.commentsCount).toBe(0);
+    }
   });
 
   test("Get Posts by sender", async () => {
@@ -69,6 +75,8 @@ describe("Sample Test Suite", () => {
     expect(response.body).toHaveProperty("img");
     expect(response.body).toHaveProperty("createdAt");
     expect(response.body).toHaveProperty("updatedAt");
+    expect(response.body).toHaveProperty("commentsCount");
+    expect(response.body.commentsCount).toBe(0);
   });
 
   test("Update Post", async () => {

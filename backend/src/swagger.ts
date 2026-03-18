@@ -54,6 +54,17 @@ const options: swaggerJsdoc.Options = {
               description: "ID of the user who created the post",
               example: "507f1f77bcf86cd799439012",
             },
+            likes: {
+              type: "array",
+              items: { type: "string" },
+              description: "Array of user IDs who liked the post",
+              example: ["507f1f77bcf86cd799439012"],
+            },
+            commentsCount: {
+              type: "integer",
+              description: "Number of comments on the post",
+              example: 5,
+            },
             createdAt: {
               type: "string",
               format: "date-time",
@@ -198,6 +209,17 @@ const options: swaggerJsdoc.Options = {
                   example: "https://example.com/profile.jpg",
                 },
               },
+            },
+            likes: {
+              type: "array",
+              items: { type: "string" },
+              description: "Array of user IDs who liked the post",
+              example: ["507f1f77bcf86cd799439012"],
+            },
+            commentsCount: {
+              type: "integer",
+              description: "Number of comments on the post",
+              example: 5,
             },
             createdAt: {
               type: "string",

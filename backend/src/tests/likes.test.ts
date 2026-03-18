@@ -33,6 +33,7 @@ describe("Likes Test Suite", () => {
     expect(response.status).toBe(200);
     expect(response.body.likes).toBeDefined();
     expect(response.body.likes).toEqual([]);
+    expect(response.body).toHaveProperty("commentsCount");
   });
 
   test("Like a post", async () => {
@@ -42,6 +43,7 @@ describe("Likes Test Suite", () => {
     expect(response.status).toBe(200);
     expect(response.body.likes).toHaveLength(1);
     expect(response.body.likes).toContain(loginUser._id);
+    expect(response.body).toHaveProperty("commentsCount");
   });
 
   test("Unlike a post (toggle off)", async () => {
