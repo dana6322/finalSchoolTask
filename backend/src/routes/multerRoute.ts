@@ -18,6 +18,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 router.post("/", upload.single("file"), function (req: any, res: any) {
+  console.log("NODE_ENV:", process.env.NODE_ENV);
+  console.log("DOMAIN_BASE:", process.env.DOMAIN_BASE);
   const base =
     process.env.NODE_ENV === "production"
       ? process.env.DOMAIN_BASE + "/"
