@@ -1,3 +1,14 @@
 node_modules
 .DS_Store
 dist/
+
+# Environment files with secrets
+.env
+.env.dev
+.env.prod
+.env.test
+.env.production
+.env.development
+
+# SSL certificates
+*.pem
