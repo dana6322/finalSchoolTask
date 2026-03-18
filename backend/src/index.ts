@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 // Serve uploaded files from the public/uploads folder
-app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "../../public/uploads")));
 
 // Swagger UI setup
 app.use(
@@ -41,6 +41,14 @@ app.use("/ai", aiRouter);
 app.get("/api-docs.json", (req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.send(swaggerSpec);
+});
+
+// Serve the React frontend from the public folder
+app.use(express.static(path.join(__dirname, "../../public")));
+
+// Catch-all: serve React's index.html for any non-API route (client-side routing)
+app.get("*splat", (req, res) => {
+  res.sendFile(path.join(__dirname, "../../public/index.html"));
 });
 
 const initApp = () => {
