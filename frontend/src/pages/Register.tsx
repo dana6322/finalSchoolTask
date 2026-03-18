@@ -8,8 +8,11 @@ export default function Register() {
   const [userName, setUserName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [localError, setLocalError] = useState("");
+  const [passwordTouched, setPasswordTouched] = useState(false);
   const { register, isLoading, error } = useAuth();
   const navigate = useNavigate();
+
+  const passwordTooShort = passwordTouched && password.length > 0 && password.length < 6;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,12 +105,18 @@ export default function Register() {
               </label>
               <input
                 type="password"
-                className="form-control"
+                className={`form-control ${passwordTooShort ? "is-invalid" : ""}`}
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                onBlur={() => setPasswordTouched(true)}
+                placeholder="Enter your password (min. 6 characters)"
               />
+              {passwordTooShort && (
+                <div className="invalid-feedback">
+                  Password must be at least 6 characters
+                </div>
+              )}
             </div>
 
             <div className="mb-3">
