@@ -10,8 +10,9 @@ function getModel(): GenerativeModel {
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not defined in environment variables");
     }
+    console.log("Initializing Gemini with key ending in:", apiKey.slice(-6));
     const genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   }
   return model;
 }
