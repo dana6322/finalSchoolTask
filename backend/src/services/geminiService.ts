@@ -36,9 +36,10 @@ function getImageAsBase64(
       filename = parts[parts.length - 1];
     }
 
-    const filePath = path.join(__dirname, "../../public/uploads", filename);
+    const filePath = path.join(process.cwd(), "public/uploads", filename);
 
     if (!fs.existsSync(filePath)) {
+      console.log("AI search: Image file not found at:", filePath);
       return null;
     }
 
@@ -128,11 +129,15 @@ export async function smartSearch(
         imageLabels.push(
           `[Image above belongs to Post #${postNum}, text: "${p.text.substring(0, 50)}"]`,
         );
+      } else {
+        console.log("AI search: Could not load image for post:", p.img);
       }
     } else if (p.img) {
       postsContext[postsContext.length - 1] += "\n(This post has an image that was not included due to size limits)";
     }
   }
+
+  console.log(`AI search: ${posts.length} posts, ${imageParts.length} images loaded, query: "${query}"`);
 
   const textPrompt = `You are a helpful assistant for a social media application called SocialHub.
 Users can create posts with text and images, and other users can comment on them.
